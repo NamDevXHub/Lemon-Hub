@@ -1,528 +1,698 @@
---==============================================================
---  LEMON HUB — UI (ĐÃ FIX)
---  by NamDevXHub
---==============================================================
-print("[LemonHub] Script bắt đầu chạy...")
+--[[
+    =====================================================================
+      LEMON HUB  -  by NamDevXHub
+      Game : Paper to Plane (Roblox)
+      UI   : Rayfield (Sirius)          Phím K : ẩn / hiện menu
+    =====================================================================
+    Ghi chú:
+      * Đây là bản "chung": không phụ thuộc tên Remote của game, nên dùng
+        được cho các game clicker / simulator ném máy bay giấy.
+      * Muốn thêm tính năng riêng cho game (Auto Sell, Auto Hatch...), thêm
+        vào mục "TÍNH NĂNG RIÊNG CỦA GAME" ở cuối file.
+]]
 
-local Players           = game:GetService("Players")
-local TweenService      = game:GetService("TweenService")
-local UserInputService  = game:GetService("UserInputService")
+---------------------------------------------------------------------
+-- 0. CHỐNG CHẠY TRÙNG
+---------------------------------------------------------------------
+local env = (getgenv and getgenv()) or _G
+if env.LemonHubDestroy then
+    pcall(env.LemonHubDestroy)
+end
 
-local player    = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-print("[LemonHub] PlayerGui OK")
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
---========================= THEME =========================
-local T = {
-    Accent     = Color3.fromRGB(255, 214, 10),
-    AccentDark = Color3.fromRGB(190, 155, 0),
-    Bg         = Color3.fromRGB(20, 20, 24),
-    Card       = Color3.fromRGB(30, 30, 36),
-    Element    = Color3.fromRGB(42, 42, 50),
-    Text       = Color3.fromRGB(238, 238, 242),
-    TextDim    = Color3.fromRGB(140, 140, 150),
-    Line       = Color3.fromRGB(58, 58, 68),
-    Font       = Enum.Font.Gotham,
-    FontMed    = Enum.Font.GothamMedium,
-    FontBold   = Enum.Font.GothamBold,
+---------------------------------------------------------------------
+-- 1. SERVICES & BIẾN CHUNG
+---------------------------------------------------------------------
+local Players            = game:GetService("Players")
+local RunService         = game:GetService("RunService")
+local UserInputService   = game:GetService("UserInputService")
+local VirtualUser        = game:GetService("VirtualUser")
+local TeleportService    = game:GetService("TeleportService")
+local HttpService        = game:GetService("HttpService")
+local Lighting           = game:GetService("Lighting")
+local StarterGui         = game:GetService("StarterGui")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local VIM
+pcall(function()
+    VIM = game:GetService("VirtualInputManager")
+end)
+
+local LocalPlayer = Players.LocalPlayer
+
+local HUB_NAME   = "Lemon Hub"
+local HUB_AUTHOR = "NamDevXHub"
+local GAME_TITLE = "Paper to Plane"
+local ICON       = 4483362458
+
+local State = {
+    -- Farm
+    AutoClick     = false,
+    ClickMode     = "Auto",
+    CPS           = 8,
+    ClickX        = 50,
+    ClickY        = 88,
+    AutoButton    = false,
+    ButtonKeyword = "",
+    ButtonDelay   = 1,
+    -- Nhân vật
+    SpeedOn = false,
+    Speed   = 50,
+    JumpOn  = false,
+    Jump    = 100,
+    InfJump = false,
+    Noclip  = false,
+    -- Khác
+    AntiAFK = true,
 }
 
---========================= HELPERS =========================
-local function new(class, props, parent)
-    local i = Instance.new(class)
-    for k, v in pairs(props) do i[k] = v end
-    if parent then i.Parent = parent end
-    return i
+local alive       = true
+local connections = {}
+local savedCFrame = nil
+local lightBackup = nil
+local Rayfield    = nil
+
+local function track(conn)
+    table.insert(connections, conn)
+    return conn
 end
 
-local function corner(radius, parent)
-    return new("UICorner", { CornerRadius = UDim.new(0, radius) }, parent)
+---------------------------------------------------------------------
+-- 2. TẢI GIAO DIỆN RAYFIELD
+---------------------------------------------------------------------
+local okLib, lib = pcall(function()
+    return loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+end)
+
+if not okLib or not lib then
+    warn("[Lemon Hub] Không tải được Rayfield: " .. tostring(lib))
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title    = HUB_NAME,
+            Text     = "Không tải được giao diện. Kiểm tra mạng hoặc executor!",
+            Duration = 6,
+        })
+    end)
+    return
+end
+Rayfield = lib
+
+---------------------------------------------------------------------
+-- 3. HÀM TIỆN ÍCH
+---------------------------------------------------------------------
+local function notify(title, content, duration)
+    pcall(function()
+        Rayfield:Notify({
+            Title    = title or HUB_NAME,
+            Content  = content or "",
+            Duration = duration or 4,
+            Image    = ICON,
+        })
+    end)
 end
 
-local function stroke(color, thickness, transparency, parent)
-    return new("UIStroke", {
-        Color = color, Thickness = thickness,
-        Transparency = transparency or 0
-    }, parent)
+local function getHum()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
 end
 
-local function tween(inst, time, goal, style)
-    local t = TweenService:Create(
-        inst,
-        TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        goal
-    )
-    t:Play()
-    return t
+local function getHRP()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
 end
 
-local function makeDraggable(handle, target)
-    local dragging, dragStart, startPos = false, nil, nil
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging  = true
-            dragStart = input.Position
-            startPos  = target.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+local gameName = GAME_TITLE
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+-- Click / ném ------------------------------------------------------
+local function doClick()
+    local mode = State.ClickMode
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+
+    if tool and (mode == "Auto" or mode == "Tool Activate") then
+        pcall(function() tool:Activate() end)
+        return
+    end
+    if mode == "Tool Activate" then return end
+
+    local cam = workspace.CurrentCamera
+    if not (VIM and cam) then return end
+    local size = cam.ViewportSize
+    local x = size.X * State.ClickX / 100
+    local y = size.Y * State.ClickY / 100
+    pcall(function()
+        VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+        VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+    end)
+end
+
+-- Nút GUI ----------------------------------------------------------
+local function isShown(gui)
+    local cur = gui
+    while cur and cur ~= game do
+        if cur:IsA("GuiObject") and not cur.Visible then return false end
+        if cur:IsA("LayerCollector") and not cur.Enabled then return false end
+        cur = cur.Parent
+    end
+    return true
+end
+
+local function buttonText(btn)
+    if btn:IsA("TextButton") then
+        return btn.Text
+    end
+    local lbl = btn:FindFirstChildWhichIsA("TextLabel", true)
+    return lbl and lbl.Text or ""
+end
+
+local function collectButtons(keyword)
+    local result = {}
+    local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if not pg then return result end
+    keyword = string.lower(keyword or "")
+
+    for _, g in ipairs(pg:GetDescendants()) do
+        if g:IsA("GuiButton") and isShown(g) then
+            local sg = g:FindFirstAncestorOfClass("ScreenGui")
+            if not (sg and string.find(sg.Name, "Rayfield", 1, true)) then
+                if keyword == "" then
+                    table.insert(result, g)
+                else
+                    local name = string.lower(g.Name)
+                    local text = string.lower(buttonText(g))
+                    if string.find(name, keyword, 1, true) or string.find(text, keyword, 1, true) then
+                        table.insert(result, g)
+                    end
                 end
-            end)
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            target.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-end
-
---========================= SCREEN GUI =========================
-local gui = new("ScreenGui", {
-    Name           = "LemonHubUI",
-    ResetOnSpawn   = false,
-    IgnoreGuiInset = true,
-    DisplayOrder   = 999,                          -- FIX: luôn nằm trên
-    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-}, playerGui)
-print("[LemonHub] ScreenGui đã tạo")
-
---========================= NÚT BẬT / TẮT =========================
-local holder = new("Frame", {
-    Name = "ToggleHolder",
-    Size = UDim2.fromOffset(80, 54),
-    Position = UDim2.new(0, 24, 0.5, -27),
-    BackgroundTransparency = 1,
-    Parent = gui,
-})
-makeDraggable(holder, holder)
-
-local btn = new("Frame", {
-    Name = "SquareButton",
-    Size = UDim2.fromOffset(54, 54),
-    BackgroundColor3 = T.Accent,
-    Parent = holder,
-})
-corner(16, btn)
-local btnStroke = stroke(T.AccentDark, 2, 0.15, btn)
-
-local circle = new("Frame", {
-    Size = UDim2.fromOffset(34, 34),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    Position = UDim2.fromScale(0.5, 0.5),
-    BackgroundColor3 = T.Bg,
-    Parent = btn,
-})
-corner(999, circle)
-
-local icon = new("TextLabel", {
-    Size = UDim2.fromScale(1, 1),
-    BackgroundTransparency = 1,
-    Text = "≡",
-    Font = T.FontBold,
-    TextSize = 22,
-    TextColor3 = T.Accent,
-    Parent = circle,
-})
-
-local dot = new("Frame", {
-    Name = "SideDot",
-    Size = UDim2.fromOffset(14, 14),
-    AnchorPoint = Vector2.new(0, 0.5),
-    Position = UDim2.new(0, 62, 0.5, 0),
-    BackgroundColor3 = T.Element,
-    Parent = holder,
-})
-corner(999, dot)
-local dotStroke = stroke(T.Line, 1, 0, dot)
-
-local clickArea = new("TextButton", {
-    Size = UDim2.fromScale(1, 1),
-    BackgroundTransparency = 1,
-    Text = "",
-    Parent = btn,
-})
-print("[LemonHub] Nút bật/tắt đã tạo")
-
---========================= PANEL =========================
-local panel = new("Frame", {
-    Name = "Panel",
-    Size = UDim2.fromOffset(420, 520),
-    Position = UDim2.new(1, -460, 0.5, -260),
-    BackgroundColor3 = T.Bg,
-    Visible = false,
-    ClipsDescendants = true,
-    Parent = gui,
-})
-corner(18, panel)
-stroke(T.Line, 1, 0.2, panel)
-
-local panelScale = new("UIScale", { Scale = 0.92 }, panel)
-
--- Header
-local header = new("Frame", {
-    Size = UDim2.new(1, 0, 0, 62),
-    BackgroundTransparency = 1,
-    Parent = panel,
-})
-
-new("TextLabel", {
-    Size = UDim2.new(1, -100, 0, 22),
-    Position = UDim2.new(0, 18, 0, 12),
-    BackgroundTransparency = 1,
-    Text = "LEMON HUB",
-    Font = T.FontBold,
-    TextSize = 19,
-    TextColor3 = T.Text,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = header,
-})
-
-new("TextLabel", {
-    Size = UDim2.new(1, -100, 0, 16),
-    Position = UDim2.new(0, 18, 0, 34),
-    BackgroundTransparency = 1,
-    Text = "by NamDevXHub",
-    Font = T.FontMed,
-    TextSize = 12,
-    TextColor3 = T.Accent,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = header,
-})
-
-local closeBtn = new("TextButton", {
-    Size = UDim2.fromOffset(28, 28),
-    Position = UDim2.new(1, -42, 0, 17),
-    BackgroundColor3 = T.Element,
-    Text = "✕",
-    Font = T.FontBold,
-    TextSize = 13,
-    TextColor3 = T.TextDim,
-    AutoButtonColor = false,
-    Parent = header,
-})
-corner(9, closeBtn)
-closeBtn.MouseEnter:Connect(function()
-    tween(closeBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(220, 70, 70), TextColor3 = Color3.fromRGB(255, 255, 255) })
-end)
-closeBtn.MouseLeave:Connect(function()
-    tween(closeBtn, 0.15, { BackgroundColor3 = T.Element, TextColor3 = T.TextDim })
-end)
-
--- Tab bar (chỉ trang trí để đẹp)
-local tabBar = new("Frame", {
-    Size = UDim2.new(1, -36, 0, 34),
-    Position = UDim2.new(0, 18, 0, 62),
-    BackgroundColor3 = T.Card,
-    Parent = panel,
-})
-corner(10, tabBar)
-
-new("Frame", {
-    Size = UDim2.new(0, 60, 0, 3),
-    Position = UDim2.new(0, 12, 1, -3),
-    BackgroundColor3 = T.Accent,
-    Parent = tabBar,
-})
-corner(2, tabBar:FindFirstChildOfClass("Frame"))
-
-new("TextLabel", {
-    Size = UDim2.fromScale(1, 1),
-    BackgroundTransparency = 1,
-    Text = "Main",
-    Font = T.FontBold,
-    TextSize = 13,
-    TextColor3 = T.Accent,
-    Parent = tabBar,
-})
-
--- Content
-local content = new("ScrollingFrame", {
-    Size = UDim2.new(1, -36, 1, -160),
-    Position = UDim2.new(0, 18, 0, 110),
-    BackgroundTransparency = 1,
-    ScrollBarThickness = 3,
-    ScrollBarImageColor3 = T.Accent,
-    CanvasSize = UDim2.new(0, 0, 0, 0),
-    AutomaticCanvasSize = Enum.AutomaticSize.Y,
-    Parent = panel,
-})
-new("UIListLayout", {
-    Padding = UDim.new(0, 10),
-    SortOrder = Enum.SortOrder.LayoutOrder
-}, content)
-
---========================= COMPONENTS =========================
-local function sectionLabel(text)
-    new("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 18),
-        BackgroundTransparency = 1,
-        Text = string.upper(text),
-        Font = T.FontBold,
-        TextSize = 11,
-        TextColor3 = T.TextDim,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = content,
-    })
-end
-
-local function toggleRow(text, default, callback)
-    local row = new("Frame", {
-        Size = UDim2.new(1, 0, 0, 44),
-        BackgroundColor3 = T.Card,
-        Parent = content,
-    })
-    corner(10, row)
-
-    new("TextLabel", {
-        Size = UDim2.new(1, -80, 1, 0),
-        Position = UDim2.new(0, 14, 0, 0),
-        BackgroundTransparency = 1,
-        Text = text,
-        Font = T.FontMed,
-        TextSize = 14,
-        TextColor3 = T.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = row,
-    })
-
-    local sw = new("Frame", {
-        Size = UDim2.fromOffset(42, 22),
-        Position = UDim2.new(1, -56, 0.5, -11),
-        BackgroundColor3 = T.Element,
-        Parent = row,
-    })
-    corner(11, sw)
-
-    local knob = new("Frame", {
-        Size = UDim2.fromOffset(16, 16),
-        Position = UDim2.new(0, 3, 0.5, -8),
-        BackgroundColor3 = T.TextDim,
-        Parent = sw,
-    })
-    corner(999, knob)
-
-    local state = default and true or false
-    local function apply(anim)
-        local goalPos  = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-        local goalBg   = state and T.Accent or T.Element
-        local goalKnob = state and Color3.fromRGB(30, 30, 34) or T.TextDim
-        if anim then
-            tween(knob, 0.18, { Position = goalPos }, Enum.EasingStyle.Back)
-            tween(sw,   0.18, { BackgroundColor3 = goalBg })
-            tween(knob, 0.18, { BackgroundColor3 = goalKnob })
-        else
-            knob.Position = goalPos
-            sw.BackgroundColor3 = goalBg
-            knob.BackgroundColor3 = goalKnob
+            end
         end
     end
-    apply(false)
-
-    new("TextButton", {
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        Text = "",
-        Parent = sw,
-    }).MouseButton1Click:Connect(function()
-        state = not state
-        apply(true)
-        if callback then callback(state) end
-    end)
-
-    return row
+    return result
 end
 
-local function sliderRow(text, min, max, default, step, callback)
-    local row = new("Frame", {
-        Size = UDim2.new(1, 0, 0, 52),
-        BackgroundColor3 = T.Card,
-        Parent = content,
-    })
-    corner(10, row)
-
-    new("TextLabel", {
-        Size = UDim2.new(1, -70, 0, 18),
-        Position = UDim2.new(0, 14, 0, 8),
-        BackgroundTransparency = 1,
-        Text = text,
-        Font = T.FontMed,
-        TextSize = 14,
-        TextColor3 = T.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = row,
-    })
-
-    local valueLbl = new("TextLabel", {
-        Size = UDim2.new(0, 60, 0, 18),
-        Position = UDim2.new(1, -74, 0, 8),
-        BackgroundTransparency = 1,
-        Text = tostring(default),
-        Font = T.FontBold,
-        TextSize = 13,
-        TextColor3 = T.Accent,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        Parent = row,
-    })
-
-    local track = new("Frame", {
-        Size = UDim2.new(1, -28, 0, 6),
-        Position = UDim2.new(0, 14, 1, -18),
-        BackgroundColor3 = T.Element,
-        Parent = row,
-    })
-    corner(3, track)
-
-    local ratio = (default - min) / (max - min)
-    local fill = new("Frame", {
-        Size = UDim2.new(ratio, 0, 1, 0),
-        BackgroundColor3 = T.Accent,
-        Parent = track,
-    })
-    corner(3, fill)
-
-    local knob = new("Frame", {
-        Size = UDim2.fromOffset(14, 14),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(ratio, 0, 0.5, 0),
-        BackgroundColor3 = T.Text,
-        Parent = track,
-    })
-    corner(999, knob)
-    stroke(T.Accent, 2, 0, knob)
-
-    local dragging = false
-    local function setFromInput(posX)
-        local rel = math.clamp((posX - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-        local raw = min + (max - min) * rel
-        local val = math.floor(raw / step + 0.5) * step
-        local r = (val - min) / (max - min)
-        fill.Size = UDim2.new(r, 0, 1, 0)
-        knob.Position = UDim2.new(r, 0, 0.5, 0)
-        if step >= 1 then
-            valueLbl.Text = tostring(math.floor(val))
-        else
-            valueLbl.Text = string.format("%.1f", val)
+local function pressButton(btn)
+    for _, sig in ipairs({ btn.MouseButton1Click, btn.Activated }) do
+        if firesignal then
+            pcall(firesignal, sig)
+        elseif getconnections then
+            local ok, list = pcall(getconnections, sig)
+            if ok and list then
+                for _, c in ipairs(list) do
+                    pcall(function() c:Fire() end)
+                end
+            end
         end
-        if callback then callback(val) end
     end
-
-    local hit = new("TextButton", {
-        Size = UDim2.new(1, 0, 0, 22),
-        Position = UDim2.new(0, 0, 0.5, -11),
-        BackgroundTransparency = 1,
-        Text = "",
-        Parent = track,
-    })
-    hit.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            setFromInput(input.Position.X)
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch) then
-            setFromInput(input.Position.X)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    return row
 end
 
-local function actionButton(text, callback)
-    local b = new("TextButton", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = T.Accent,
-        Text = text,
-        Font = T.FontBold,
-        TextSize = 14,
-        TextColor3 = Color3.fromRGB(25, 25, 28),
-        AutoButtonColor = false,
-        Parent = content,
-    })
-    corner(10, b)
-    b.MouseEnter:Connect(function()
-        tween(b, 0.15, { BackgroundColor3 = Color3.fromRGB(255, 228, 90) })
-    end)
-    b.MouseLeave:Connect(function()
-        tween(b, 0.15, { BackgroundColor3 = T.Accent })
-    end)
-    b.MouseButton1Click:Connect(function()
-        if callback then callback() end
-    end)
-    return b
+local function dumpButtons()
+    local list = collectButtons("")
+    local shown = math.min(#list, 150)
+    print(("[Lemon Hub] Có %d nút đang hiển thị:"):format(#list))
+    for i = 1, shown do
+        local b = list[i]
+        print(("%d) Name=%s | Text=%s | %s"):format(i, b.Name, buttonText(b), b:GetFullName()))
+    end
+    notify("Danh sách nút", "Đã in " .. shown .. " nút ra console (nhấn F9 để xem).", 5)
 end
 
---========================= NỘI DUNG MẪU =========================
-sectionLabel("Combat")
-toggleRow("Aim Assist", false, function(v) print("[UI] Aim Assist:", v) end)
-toggleRow("Auto Parry", false, function(v) print("[UI] Auto Parry:", v) end)
+-- Nhân vật ---------------------------------------------------------
+local function restoreSpeed()
+    local hum = getHum()
+    if hum then hum.WalkSpeed = State.OrigSpeed or 16 end
+end
 
-sectionLabel("Visual")
-toggleRow("ESP Box", false, function(v) print("[UI] ESP:", v) end)
-sliderRow("FOV Radius", 20, 300, 90, 5, function(v) print("[UI] FOV:", v) end)
+local function restoreJump()
+    local hum = getHum()
+    if hum then
+        hum.JumpPower = State.OrigJump or 50
+        if State.OrigUseJump ~= nil then
+            hum.UseJumpPower = State.OrigUseJump
+        end
+    end
+end
 
-sectionLabel("Misc")
-sliderRow("Walk Speed", 16, 100, 16, 1, function(v) print("[UI] Speed:", v) end)
-actionButton("Reset Settings", function() print("[UI] Reset clicked") end)
+-- Ánh sáng / đồ họa ------------------------------------------------
+local function setFullbright(on)
+    if on then
+        lightBackup = {
+            Brightness     = Lighting.Brightness,
+            ClockTime      = Lighting.ClockTime,
+            FogEnd         = Lighting.FogEnd,
+            GlobalShadows  = Lighting.GlobalShadows,
+            Ambient        = Lighting.Ambient,
+            OutdoorAmbient = Lighting.OutdoorAmbient,
+        }
+        Lighting.Brightness     = 2
+        Lighting.ClockTime      = 14
+        Lighting.FogEnd         = 100000
+        Lighting.GlobalShadows  = false
+        Lighting.Ambient        = Color3.fromRGB(178, 178, 178)
+        Lighting.OutdoorAmbient = Color3.fromRGB(178, 178, 178)
+    elseif lightBackup then
+        for k, v in pairs(lightBackup) do
+            pcall(function() Lighting[k] = v end)
+        end
+        lightBackup = nil
+    end
+end
 
-print("[LemonHub] Nội dung mẫu đã tạo")
+local function fpsBoost()
+    pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+    pcall(function() Lighting.GlobalShadows = false end)
+    local count = 0
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke")
+            or v:IsA("Fire") or v:IsA("Sparkles") then
+            v.Enabled = false
+        elseif v:IsA("BasePart") and not v:IsA("Terrain") then
+            v.CastShadow = false
+            v.Material = Enum.Material.SmoothPlastic
+        end
+        count = count + 1
+        if count % 2000 == 0 then task.wait() end
+    end
+    notify("FPS Boost", "Đã giảm đồ họa để game mượt hơn.")
+end
 
---========================= OPEN / CLOSE (ĐÃ FIX) =========================
-local isOpen = false
-local openTween
-
-local function setOpen(state)
-    if isOpen == state then return end
-    isOpen = state
-    print("[LemonHub] setOpen:", state)
-
-    if openTween then openTween:Cancel() end
-
-    if state then
-        -- MỞ
-        panel.Visible = true
-        panelScale.Scale = 0.92
-        openTween = tween(panelScale, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
-        -- FIX: KHÔNG tween Text, chỉ set Text + tween TextSize cho hiệu ứng pop
-        icon.Text = "✕"
-        icon.TextSize = 28
-        tween(icon, 0.2, { TextSize = 22 }, Enum.EasingStyle.Back)
-        tween(btn, 0.22, { BackgroundColor3 = T.AccentDark })
-        tween(dot, 0.22, { BackgroundColor3 = T.Accent })
-        tween(dotStroke, 0.22, { Transparency = 1 })
+-- Server -----------------------------------------------------------
+local function rejoin()
+    notify("Rejoin", "Đang vào lại server...")
+    if #Players:GetPlayers() <= 1 then
+        LocalPlayer:Kick("\nLemon Hub: đang vào lại game...")
+        task.wait()
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
     else
-        -- ĐÓNG
-        openTween = tween(panelScale, 0.16, { Scale = 0.88 })
-        task.delay(0.16, function()
-            if not isOpen then panel.Visible = false end
-        end)
-        icon.Text = "≡"
-        icon.TextSize = 28
-        tween(icon, 0.2, { TextSize = 22 }, Enum.EasingStyle.Back)
-        tween(btn, 0.22, { BackgroundColor3 = T.Accent })
-        tween(dot, 0.22, { BackgroundColor3 = T.Element })
-        tween(dotStroke, 0.22, { Transparency = 0 })
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
     end
 end
 
-clickArea.MouseButton1Click:Connect(function()
-    setOpen(not isOpen)
+local function serverHop()
+    notify("Server Hop", "Đang tìm server khác...")
+    local ok, data = pcall(function()
+        local url = "https://games.roblox.com/v1/games/" .. tostring(game.PlaceId)
+            .. "/servers/Public?sortOrder=Asc&limit=100"
+        return HttpService:JSONDecode(game:HttpGet(url))
+    end)
+    if ok and type(data) == "table" and data.data then
+        for _, s in ipairs(data.data) do
+            if s.id ~= game.JobId and s.playing and s.maxPlayers and s.playing < s.maxPlayers then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+                return
+            end
+        end
+    end
+    notify("Server Hop", "Không tìm được server phù hợp, thử lại sau nhé.")
+end
+
+-- Hủy hub ----------------------------------------------------------
+local function destroyHub()
+    alive = false
+    for _, c in ipairs(connections) do
+        pcall(function() c:Disconnect() end)
+    end
+    connections = {}
+
+    if State.SpeedOn then restoreSpeed() end
+    if State.JumpOn then restoreJump() end
+    setFullbright(false)
+
+    pcall(function() Rayfield:Destroy() end)
+    env.LemonHubDestroy = nil
+end
+env.LemonHubDestroy = destroyHub
+
+---------------------------------------------------------------------
+-- 4. LOGIC (vòng lặp & kết nối)
+---------------------------------------------------------------------
+-- Auto click
+task.spawn(function()
+    while alive do
+        if State.AutoClick then
+            doClick()
+            task.wait(1 / math.max(State.CPS, 1))
+        else
+            task.wait(0.2)
+        end
+    end
 end)
-closeBtn.MouseButton1Click:Connect(function()
-    setOpen(false)
+
+-- Auto bấm nút GUI
+task.spawn(function()
+    while alive do
+        if State.AutoButton and State.ButtonKeyword ~= "" then
+            local list = collectButtons(State.ButtonKeyword)
+            for i = 1, math.min(#list, 10) do
+                pressButton(list[i])
+            end
+            task.wait(State.ButtonDelay)
+        else
+            task.wait(0.3)
+        end
+    end
 end)
+
+-- WalkSpeed / JumpPower (giữ giá trị khi game cố reset)
+track(RunService.Heartbeat:Connect(function()
+    if not (State.SpeedOn or State.JumpOn) then return end
+    local hum = getHum()
+    if not hum then return end
+    if State.SpeedOn and hum.WalkSpeed ~= State.Speed then
+        hum.WalkSpeed = State.Speed
+    end
+    if State.JumpOn then
+        if not hum.UseJumpPower then hum.UseJumpPower = true end
+        if hum.JumpPower ~= State.Jump then hum.JumpPower = State.Jump end
+    end
+end))
+
+-- Infinite Jump
+track(UserInputService.JumpRequest:Connect(function()
+    if not State.InfJump then return end
+    local hum = getHum()
+    if hum then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end))
+
+-- Noclip
+track(RunService.Stepped:Connect(function()
+    if not State.Noclip then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.CanCollide then
+            part.CanCollide = false
+        end
+    end
+end))
+
+-- Anti AFK
+track(LocalPlayer.Idled:Connect(function()
+    if not State.AntiAFK then return end
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
+    end)
+end))
+
+---------------------------------------------------------------------
+-- 5. GIAO DIỆN
+---------------------------------------------------------------------
+local Window = Rayfield:CreateWindow({
+    Name = HUB_NAME .. " | " .. HUB_AUTHOR,
+    Icon = 0,
+    LoadingTitle = HUB_NAME,
+    LoadingSubtitle = "by " .. HUB_AUTHOR,
+    ShowText = HUB_NAME,
+    Theme = "AmberGlow",
+    ToggleUIKeybind = "K",
+    DisableRayfieldPrompts = true,
+    DisableBuildWarnings = true,
+    ConfigurationSaving = { Enabled = false },
+    Discord = { Enabled = false },
+    KeySystem = false,
+})
+
+-- ===== TAB: THÔNG TIN =====
+local InfoTab = Window:CreateTab("Thông tin", ICON)
+InfoTab:CreateSection(HUB_NAME)
+InfoTab:CreateParagraph({
+    Title = HUB_NAME .. " - " .. HUB_AUTHOR,
+    Content = "Hub dành cho " .. GAME_TITLE .. ". Nhấn phím K để ẩn/hiện menu.",
+})
+InfoTab:CreateLabel("Game: " .. tostring(gameName))
+InfoTab:CreateLabel("PlaceId: " .. tostring(game.PlaceId))
+InfoTab:CreateLabel("Người chơi: " .. LocalPlayer.DisplayName)
+InfoTab:CreateSection("Lưu ý")
+InfoTab:CreateParagraph({
+    Title = "Khuyến cáo",
+    Content = "Dùng script có thể vi phạm Điều khoản của Roblox và bị khóa tài khoản. Nên dùng acc phụ.",
+})
+
+-- ===== TAB: FARM =====
+local FarmTab = Window:CreateTab("Farm", ICON)
+
+FarmTab:CreateSection("Auto Click / Ném máy bay")
+FarmTab:CreateToggle({
+    Name = "Auto Click",
+    CurrentValue = false,
+    Callback = function(v)
+        State.AutoClick = v
+    end,
+})
+FarmTab:CreateSlider({
+    Name = "Tốc độ click",
+    Range = {1, 25},
+    Increment = 1,
+    Suffix = " lần/giây",
+    CurrentValue = State.CPS,
+    Callback = function(v)
+        State.CPS = v
+    end,
+})
+FarmTab:CreateDropdown({
+    Name = "Kiểu click",
+    Options = {"Auto", "Screen Click", "Tool Activate"},
+    CurrentOption = {"Auto"},
+    MultipleOptions = false,
+    Callback = function(opt)
+        State.ClickMode = (type(opt) == "table" and opt[1]) or opt or "Auto"
+    end,
+})
+FarmTab:CreateSlider({
+    Name = "Vị trí click - ngang (X)",
+    Range = {5, 95},
+    Increment = 1,
+    Suffix = " %",
+    CurrentValue = State.ClickX,
+    Callback = function(v)
+        State.ClickX = v
+    end,
+})
+FarmTab:CreateSlider({
+    Name = "Vị trí click - dọc (Y)",
+    Range = {5, 95},
+    Increment = 1,
+    Suffix = " %",
+    CurrentValue = State.ClickY,
+    Callback = function(v)
+        State.ClickY = v
+    end,
+})
+FarmTab:CreateParagraph({
+    Title = "Gợi ý",
+    Content = "Auto: đang cầm Tool thì dùng Tool, không thì click vào màn hình. Hãy chọn vị trí click nằm ngoài menu hub và ngoài các nút của game.",
+})
+
+FarmTab:CreateSection("Auto bấm nút GUI (Rebirth, Upgrade, Hatch...)")
+FarmTab:CreateInput({
+    Name = "Tên / chữ trên nút",
+    CurrentValue = "",
+    PlaceholderText = "VD: Rebirth (gõ xong nhấn Enter)",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        State.ButtonKeyword = tostring(text or "")
+    end,
+})
+FarmTab:CreateSlider({
+    Name = "Chờ giữa các lần bấm",
+    Range = {0.3, 10},
+    Increment = 0.1,
+    Suffix = " giây",
+    CurrentValue = State.ButtonDelay,
+    Callback = function(v)
+        State.ButtonDelay = v
+    end,
+})
+FarmTab:CreateToggle({
+    Name = "Auto bấm nút",
+    CurrentValue = false,
+    Callback = function(v)
+        if v and State.ButtonKeyword == "" then
+            notify("Auto bấm nút", "Hãy nhập tên/chữ trên nút trước nhé.")
+        end
+        if v and not (firesignal or getconnections) then
+            notify("Auto bấm nút", "Executor của bạn không hỗ trợ firesignal/getconnections.", 6)
+        end
+        State.AutoButton = v
+    end,
+})
+FarmTab:CreateButton({
+    Name = "In danh sách nút đang hiện (xem ở F9)",
+    Callback = dumpButtons,
+})
+
+-- ===== TAB: NHÂN VẬT =====
+local PlayerTab = Window:CreateTab("Nhân vật", ICON)
+local speedToggle, jumpToggle, infJumpToggle, noclipToggle
+
+PlayerTab:CreateSection("Tốc độ & nhảy")
+speedToggle = PlayerTab:CreateToggle({
+    Name = "Bật WalkSpeed",
+    CurrentValue = false,
+    Callback = function(v)
+        if v then
+            local hum = getHum()
+            if hum then State.OrigSpeed = hum.WalkSpeed end
+            State.SpeedOn = true
+        else
+            State.SpeedOn = false
+            restoreSpeed()
+        end
+    end,
+})
+PlayerTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 200},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = State.Speed,
+    Callback = function(v)
+        State.Speed = v
+    end,
+})
+jumpToggle = PlayerTab:CreateToggle({
+    Name = "Bật JumpPower",
+    CurrentValue = false,
+    Callback = function(v)
+        if v then
+            local hum = getHum()
+            if hum then
+                State.OrigJump = hum.JumpPower
+                State.OrigUseJump = hum.UseJumpPower
+            end
+            State.JumpOn = true
+        else
+            State.JumpOn = false
+            restoreJump()
+        end
+    end,
+})
+PlayerTab:CreateSlider({
+    Name = "JumpPower",
+    Range = {50, 300},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = State.Jump,
+    Callback = function(v)
+        State.Jump = v
+    end,
+})
+
+PlayerTab:CreateSection("Di chuyển")
+infJumpToggle = PlayerTab:CreateToggle({
+    Name = "Infinite Jump (nhảy vô hạn)",
+    CurrentValue = false,
+    Callback = function(v)
+        State.InfJump = v
+    end,
+})
+noclipToggle = PlayerTab:CreateToggle({
+    Name = "Noclip (xuyên tường)",
+    CurrentValue = false,
+    Callback = function(v)
+        State.Noclip = v
+    end,
+})
+PlayerTab:CreateButton({
+    Name = "Tắt hết tính năng nhân vật",
+    Callback = function()
+        for _, t in ipairs({ speedToggle, jumpToggle, infJumpToggle, noclipToggle }) do
+            pcall(function() t:Set(false) end)
+        end
+        notify("Nhân vật", "Đã tắt các tính năng nhân vật.")
+    end,
+})
+
+-- ===== TAB: DỊCH CHUYỂN =====
+local TpTab = Window:CreateTab("Dịch chuyển", ICON)
+TpTab:CreateSection("Vị trí đã lưu")
+TpTab:CreateButton({
+    Name = "Lưu vị trí hiện tại",
+    Callback = function()
+        local hrp = getHRP()
+        if hrp then
+            savedCFrame = hrp.CFrame
+            notify("Dịch chuyển", "Đã lưu vị trí hiện tại.")
+        else
+            notify("Dịch chuyển", "Không tìm thấy nhân vật.")
+        end
+    end,
+})
+TpTab:CreateButton({
+    Name = "Dịch chuyển tới vị trí đã lưu",
+    Callback = function()
+        local hrp = getHRP()
+        if hrp and savedCFrame then
+            hrp.CFrame = savedCFrame
+        else
+            notify("Dịch chuyển", "Chưa có vị trí nào được lưu.")
+        end
+    end,
+})
+
+-- ===== TAB: KHÁC =====
+local MiscTab = Window:CreateTab("Khác", ICON)
+MiscTab:CreateSection("Tiện ích")
+MiscTab:CreateToggle({
+    Name = "Anti AFK",
+    CurrentValue = true,
+    Callback = function(v)
+        State.AntiAFK = v
+    end,
+})
+MiscTab:CreateToggle({
+    Name = "Fullbright (sáng toàn map)",
+    CurrentValue = false,
+    Callback = function(v)
+        setFullbright(v)
+    end,
+})
+MiscTab:CreateButton({
+    Name = "FPS Boost (giảm đồ họa)",
+    Callback = function()
+        task.spawn(fpsBoost)
+    end,
+})
+
+MiscTab:CreateSection("Server")
+MiscTab:CreateButton({
+    Name = "Rejoin (vào lại server)",
+    Callback = function()
+        task.spawn(rejoin)
+    end,
+})
+MiscTab:CreateButton({
+    Name = "Server Hop (đổi server)",
+    Callback = function()
+        task.spawn(serverHop)
+    end,
+})
+
+MiscTab:CreateSection("Hub")
+MiscTab:CreateButton({
+    Name = "Hủy " .. HUB_NAME,
+    Callback = destroyHub,
+})
+
+---------------------------------------------------------------------
+-- 6. TÍNH NĂNG RIÊNG CỦA GAME
+---------------------------------------------------------------------
+-- Thêm tính năng dành riêng cho Paper to Plane ở đây, ví dụ:
+--
+-- FarmTab:CreateToggle({
+--     Name = "Tên tính năng",
+--     CurrentValue = false,
+--     Callback = function(v)
+--         -- viết logic của bạn ở đây
+--     end,
+-- })
+
+notify(HUB_NAME, "Đã tải xong! Nhấn K để ẩn/hiện menu.", 5)
