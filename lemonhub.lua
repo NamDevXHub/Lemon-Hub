@@ -292,14 +292,14 @@ function Window:CreateTab(tabName)
 end
 
 -- ==========================================
--- CÁC TÍNH NĂNG HOẠT ĐỘNG 100% (CƠ CHẾ DIRECT INTERACTION)
+-- CÁC TÍNH NĂNG HOẠT ĐỘNG 100%
 -- ==========================================
 local Window = Library:CreateWindow("🍋 LEMON HUB")
 
 local MainTab = Window:CreateTab("Auto Farm")
 local MiscTab = Window:CreateTab("Misc")
 
--- 1. Auto Click / Train (Mô phỏng click chuột trực tiếp giúp tăng lực ném chắc chắn 100%)
+-- 1. Auto Click / Train (Tăng lực ném)
 MainTab:AddToggle("Auto Train (Tăng lực ném)", function(on)
     _G.AutoTrain = on
     while _G.AutoTrain do
@@ -311,12 +311,11 @@ MainTab:AddToggle("Auto Train (Tăng lực ném)", function(on)
     end
 end)
 
--- 2. Auto Launch (Tự động kích hoạt nút ném / phóng máy bay)
+-- 2. Auto Launch (Phóng máy bay)
 MainTab:AddToggle("Auto Launch (Phóng máy bay)", function(on)
     _G.AutoLaunch = on
     while _G.AutoLaunch do
         pcall(function()
-            -- Tự động click vào màn hình khu vực nút phóng máy bay hoặc giả lập phím
             VirtualUser:CaptureController()
             VirtualUser:ClickButton1(Vector2.new(700, 400))
         end)
@@ -324,7 +323,7 @@ MainTab:AddToggle("Auto Launch (Phóng máy bay)", function(on)
     end
 end)
 
--- 3. Auto Collect Rings (Dịch chuyển nhân vật tức thì tới tất cả các vòng / tiền xuất hiện trong map)
+-- 3. Auto Collect Rings (Nhặt vòng)
 MainTab:AddToggle("Auto Collect Rings (Nhặt vòng)", function(on)
     _G.AutoCollect = on
     while _G.AutoCollect do
@@ -348,7 +347,7 @@ MainTab:AddToggle("Auto Collect Rings (Nhặt vòng)", function(on)
     end
 end)
 
--- 4. Sky Mode (Bay lên tầng mây trên cao để né 100% mọi vật cản, nhà cửa, cây cối)
+-- 4. Sky Mode (Né chướng ngại vật / Bay qua mọi vật cản trên cao)
 local SkyVel
 MainTab:AddToggle("Sky Mode (Né mọi vật cản)", function(on)
     _G.SkyMode = on
