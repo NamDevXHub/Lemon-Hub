@@ -1,4 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+if not Rayfield then
+    error("Lemon Hub: không tải được Rayfield, kiểm tra executor có chặn HttpGet không.")
+end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,14 +21,19 @@ local Config = {
     MinThreatSpeed = 15,
 }
 
-local Alive = true
-local SpyEnabled = false
+local State = {
+    Alive = true,
+    SpyEnabled = false,
+    SpyAvailable = false,
+    LastTarget = "Không có",
+    ThrowCount = 0,
+    DodgeCount = 0,
+    LastThrow = 0,
+    LastDodge = 0,
+}
+
 local Connections = {}
 local RemoteStore = {}
-local LastCapturedPath = nil
-local lastThrow = 0
-local lastDodge = 0
-
 local dodgeParams = OverlapParams.new()
 dodgeParams.FilterType = Enum.RaycastFilterType.Exclude
 
@@ -40,30 +48,32 @@ local function describe(v)
         return v:GetFullName()
     elseif t == "table" then
         return "table"
-    else
-        return t .. ": " .. tostring(v)
     end
+    return t .. ": " .. tostring(v)
 end
 
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if SpyEnabled and (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
-        pcall(function()
-            local path = self:GetFullName()
-            local args = table.pack(...)
-            local prev = RemoteStore[path]
-            RemoteStore[path] = {
-                Remote = self,
-                Args = args,
-                Method = method,
-                Count = (prev and prev.Count or 0) + 1,
-            }
-            LastCapturedPath = path
-        end)
-    end
-    return oldNamecall(self, ...)
-end))
+local hookOk = pcall(function()
+    assert(hookmetamethod and newcclosure and getnamecallmethod)
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if State.SpyEnabled and (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
+            pcall(function()
+                local path = self:GetFullName()
+                local args = table.pack(...)
+                local prev = RemoteStore[path]
+                RemoteStore[path] = {
+                    Remote = self,
+                    Args = args,
+                    Method = method,
+                    Count = (prev and prev.Count or 0) + 1,
+                }
+            end)
+        end
+        return oldNamecall(self, ...)
+    end))
+end)
+State.SpyAvailable = hookOk
 
 local function fireStored(path)
     local entry = path and RemoteStore[path]
@@ -119,11 +129,11 @@ local function isEnemy(plr)
     return true
 end
 
-local function getNearestEnemyRoot()
+local function getNearestEnemy()
     local root = getRoot()
     if not root then return nil end
 
-    local best, bestDist = nil, Config.TargetRange
+    local best, bestDist, bestPlr = nil, Config.TargetRange, nil
     for _, plr in ipairs(Players:GetPlayers()) do
         if isEnemy(plr) then
             local char = plr.Character
@@ -134,20 +144,25 @@ local function getNearestEnemyRoot()
                 if d < bestDist then
                     best = hrp
                     bestDist = d
+                    bestPlr = plr
                 end
             end
         end
     end
-    return best
+    return best, bestPlr
 end
 
 local function tryThrow()
-    if os.clock() - lastThrow < Config.ThrowCooldown then return end
+    if os.clock() - State.LastThrow < Config.ThrowCooldown then return end
+
+    local target, targetPlr = getNearestEnemy()
+    State.LastTarget = targetPlr and targetPlr.Name or "Không có"
 
     if Config.ThrowPath then
         local ok = fireStored(Config.ThrowPath)
         if ok then
-            lastThrow = os.clock()
+            State.LastThrow = os.clock()
+            State.ThrowCount += 1
         end
         return
     end
@@ -157,8 +172,6 @@ local function tryThrow()
 
     local plane = getPlane()
     if not plane or plane.Parent ~= getCharacter() then return end
-
-    local target = getNearestEnemyRoot()
     if not target then return end
 
     local flat = Vector3.new(
@@ -171,7 +184,8 @@ local function tryThrow()
     end
 
     plane:Activate()
-    lastThrow = os.clock()
+    State.LastThrow = os.clock()
+    State.ThrowCount += 1
 end
 
 local function isCharacterPart(part)
@@ -195,9 +209,7 @@ local function getDodgeDirection(root)
     for _, part in ipairs(parts) do
         if not part.Anchored and not isCharacterPart(part) then
             local v = part.AssemblyLinearVelocity
-            local speed = v.Magnitude
-
-            if speed >= Config.MinThreatSpeed then
+            if v.Magnitude >= Config.MinThreatSpeed then
                 local toRoot = root.Position - part.Position
                 if toRoot.Magnitude > 0.1 then
                     local towardness = v.Unit:Dot(toRoot.Unit)
@@ -213,7 +225,6 @@ local function getDodgeDirection(root)
             end
         end
     end
-
     return nil
 end
 
@@ -235,6 +246,9 @@ local function buildLogText()
         table.insert(paths, path)
     end
     if #paths == 0 then
+        if not State.SpyAvailable then
+            return "Executor không hỗ trợ hookmetamethod, Remote Spy không hoạt động."
+        end
         return "Chưa bắt được remote nào. Bật Remote Spy rồi ném máy bay một lần."
     end
     table.sort(paths, function(a, b)
@@ -256,35 +270,65 @@ local function buildLogText()
 end
 
 table.insert(Connections, RunService.Heartbeat:Connect(function()
-    if not Alive then return end
+    if not State.Alive then return end
 
     if Config.AutoThrow then
         pcall(tryThrow)
     end
 
-    if Config.AutoDodge and os.clock() - lastDodge >= Config.DodgeCooldown then
+    if Config.AutoDodge and os.clock() - State.LastDodge >= Config.DodgeCooldown then
         local root = getRoot()
         if root then
             local ok, dir = pcall(getDodgeDirection, root)
             if ok and dir then
                 root.CFrame = root.CFrame + dir * Config.DodgeDistance
-                lastDodge = os.clock()
+                State.LastDodge = os.clock()
+                State.DodgeCount += 1
             end
         end
     end
 end))
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lemon Hub",
+    Name = "🍋 Lemon Hub",
     LoadingTitle = "Lemon Hub",
     LoadingSubtitle = "by Darkwen",
-    Theme = "Amber Glow",
+    Theme = "AmberGlow",
+    ToggleUIKeybind = "K",
     ConfigurationSaving = { Enabled = false },
     Discord = { Enabled = false },
     KeySystem = false,
 })
 
-local MainTab = Window:CreateTab("Máy bay")
+local HomeTab = Window:CreateTab("Trang chủ", 4483362458)
+HomeTab:CreateSection("Trạng thái")
+
+local StatusParagraph = HomeTab:CreateParagraph({
+    Title = "Lemon Hub",
+    Content = "Đang khởi tạo...",
+})
+
+local function buildStatus()
+    local throwState = Config.AutoThrow and "BẬT" or "TẮT"
+    local dodgeState = Config.AutoDodge and "BẬT" or "TẮT"
+    local remoteState = Config.ThrowPath and Config.ThrowPath or "Dùng Tool:Activate()"
+    local spyState = State.SpyAvailable and (State.SpyEnabled and "Đang bật" or "Đã tắt") or "Không hỗ trợ"
+    return string.format(
+        "Auto ném: %s\nAuto né: %s\nMục tiêu gần nhất: %s\nSố lần ném: %d\nSố lần né: %d\nRemote ném: %s\nRemote Spy: %s",
+        throwState, dodgeState, State.LastTarget, State.ThrowCount, State.DodgeCount, remoteState, spyState
+    )
+end
+
+table.insert(Connections, task.spawn(function()
+    while State.Alive do
+        pcall(function()
+            StatusParagraph:Set({ Title = "Lemon Hub", Content = buildStatus() })
+        end)
+        task.wait(0.5)
+    end
+end))
+
+local MainTab = Window:CreateTab("Máy bay", 4483362458)
 
 MainTab:CreateSection("Auto ném")
 
@@ -298,7 +342,7 @@ MainTab:CreateToggle({
 })
 
 MainTab:CreateSlider({
-    Name = "Cooldown ném (giây)",
+    Name = "Cooldown ném",
     Range = { 0.1, 3 },
     Increment = 0.1,
     Suffix = "s",
@@ -310,7 +354,7 @@ MainTab:CreateSlider({
 })
 
 MainTab:CreateSlider({
-    Name = "Tầm ném (studs)",
+    Name = "Tầm ném",
     Range = { 20, 500 },
     Increment = 5,
     Suffix = "studs",
@@ -321,7 +365,7 @@ MainTab:CreateSlider({
     end,
 })
 
-MainTab:CreateSection("Né vật thể")
+MainTab:CreateSection("Auto né vật thể")
 
 MainTab:CreateToggle({
     Name = "Auto né vật thể",
@@ -333,7 +377,7 @@ MainTab:CreateToggle({
 })
 
 MainTab:CreateSlider({
-    Name = "Bán kính quét (studs)",
+    Name = "Bán kính quét",
     Range = { 5, 60 },
     Increment = 1,
     Suffix = "studs",
@@ -345,7 +389,7 @@ MainTab:CreateSlider({
 })
 
 MainTab:CreateSlider({
-    Name = "Khoảng né (studs)",
+    Name = "Khoảng né",
     Range = { 2, 30 },
     Increment = 1,
     Suffix = "studs",
@@ -357,7 +401,7 @@ MainTab:CreateSlider({
 })
 
 MainTab:CreateSlider({
-    Name = "Độ nhạy né (0.1 - 1)",
+    Name = "Độ nhạy né",
     Range = { 0.1, 1 },
     Increment = 0.05,
     CurrentValue = 0.6,
@@ -368,7 +412,7 @@ MainTab:CreateSlider({
 })
 
 MainTab:CreateSlider({
-    Name = "Cooldown né (giây)",
+    Name = "Cooldown né",
     Range = { 0.1, 1 },
     Increment = 0.05,
     Suffix = "s",
@@ -379,14 +423,24 @@ MainTab:CreateSlider({
     end,
 })
 
-local SpyTab = Window:CreateTab("Remote Spy")
+local SpyTab = Window:CreateTab("Remote Spy", 4483362458)
+
+SpyTab:CreateSection("Bắt remote")
 
 SpyTab:CreateToggle({
     Name = "Bật Remote Spy",
     CurrentValue = false,
     Flag = "SpyEnabled",
     Callback = function(value)
-        SpyEnabled = value
+        if value and not State.SpyAvailable then
+            Rayfield:Notify({
+                Title = "Lemon Hub",
+                Content = "Executor không hỗ trợ hookmetamethod.",
+                Duration = 4,
+            })
+            return
+        end
+        State.SpyEnabled = value
     end,
 })
 
@@ -410,6 +464,8 @@ local RemoteDropdown = SpyTab:CreateDropdown({
         end
     end,
 })
+
+SpyTab:CreateSection("Thao tác")
 
 SpyTab:CreateButton({
     Name = "Làm mới danh sách",
@@ -451,7 +507,7 @@ SpyTab:CreateButton({
 
 table.insert(Connections, task.spawn(function()
     local lastCount = -1
-    while Alive do
+    while State.Alive do
         task.wait(1.5)
         local count = 0
         for _ in pairs(RemoteStore) do
@@ -459,21 +515,32 @@ table.insert(Connections, task.spawn(function()
         end
         if count ~= lastCount then
             lastCount = count
-            LogParagraph:Set({ Title = "Log remote", Content = buildLogText() })
             pcall(function()
+                LogParagraph:Set({ Title = "Log remote", Content = buildLogText() })
                 RemoteDropdown:Refresh(getRemoteOptions())
             end)
         end
     end
 end))
 
-local SettingsTab = Window:CreateTab("Cài đặt")
+local SettingsTab = Window:CreateTab("Cài đặt", 4483362458)
+
+SettingsTab:CreateSection("Hệ thống")
+
+SettingsTab:CreateButton({
+    Name = "Reset đếm",
+    Callback = function()
+        State.ThrowCount = 0
+        State.DodgeCount = 0
+        State.LastTarget = "Không có"
+    end,
+})
 
 SettingsTab:CreateButton({
     Name = "Unload Lemon Hub",
     Callback = function()
-        Alive = false
-        SpyEnabled = false
+        State.Alive = false
+        State.SpyEnabled = false
         Config.AutoThrow = false
         Config.AutoDodge = false
         for _, conn in ipairs(Connections) do
@@ -485,4 +552,10 @@ SettingsTab:CreateButton({
         table.clear(RemoteStore)
         Rayfield:Destroy()
     end,
+})
+
+Rayfield:Notify({
+    Title = "Lemon Hub",
+    Content = State.SpyAvailable and "Đã tải thành công." or "Đã tải. Remote Spy không khả dụng trên executor này.",
+    Duration = 4,
 })
