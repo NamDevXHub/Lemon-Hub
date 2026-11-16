@@ -1,6 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 if not Rayfield then
-    error("Lemon Hub: không tải được Rayfield, kiểm tra executor có chặn HttpGet không.")
+    warn("Lemon Hub: không tải được Rayfield. Kiểm tra executor có chặn HttpGet không.")
+    return
 end
 
 local Players = game:GetService("Players")
@@ -289,18 +290,30 @@ table.insert(Connections, RunService.Heartbeat:Connect(function()
     end
 end))
 
-local Window = Rayfield:CreateWindow({
-    Name = "🍋 Lemon Hub",
-    LoadingTitle = "Lemon Hub",
-    LoadingSubtitle = "by Darkwen",
-    Theme = "AmberGlow",
-    ToggleUIKeybind = "K",
-    ConfigurationSaving = { Enabled = false },
-    Discord = { Enabled = false },
-    KeySystem = false,
-})
+local function buildWindow(theme)
+    return Rayfield:CreateWindow({
+        Name = "Lemon Hub",
+        LoadingTitle = "Lemon Hub",
+        LoadingSubtitle = "by Darkwen",
+        Theme = theme,
+        ToggleUIKeybind = "K",
+        ConfigurationSaving = { Enabled = false },
+        Discord = { Enabled = false },
+        KeySystem = false,
+    })
+end
 
-local HomeTab = Window:CreateTab("Trang chủ", 4483362458)
+local okWin, Window = pcall(buildWindow, "AmberGlow")
+if not okWin or not Window then
+    warn("Lemon Hub: theme AmberGlow lỗi, chuyển sang Default. Lỗi: " .. tostring(Window))
+    okWin, Window = pcall(buildWindow, "Default")
+end
+if not okWin or not Window then
+    warn("Lemon Hub: không tạo được cửa sổ. Lỗi: " .. tostring(Window))
+    return
+end
+
+local HomeTab = Window:CreateTab("Trang chủ")
 HomeTab:CreateSection("Trạng thái")
 
 local StatusParagraph = HomeTab:CreateParagraph({
@@ -328,7 +341,7 @@ table.insert(Connections, task.spawn(function()
     end
 end))
 
-local MainTab = Window:CreateTab("Máy bay", 4483362458)
+local MainTab = Window:CreateTab("Máy bay")
 
 MainTab:CreateSection("Auto ném")
 
@@ -423,7 +436,7 @@ MainTab:CreateSlider({
     end,
 })
 
-local SpyTab = Window:CreateTab("Remote Spy", 4483362458)
+local SpyTab = Window:CreateTab("Remote Spy")
 
 SpyTab:CreateSection("Bắt remote")
 
@@ -523,7 +536,7 @@ table.insert(Connections, task.spawn(function()
     end
 end))
 
-local SettingsTab = Window:CreateTab("Cài đặt", 4483362458)
+local SettingsTab = Window:CreateTab("Cài đặt")
 
 SettingsTab:CreateSection("Hệ thống")
 
