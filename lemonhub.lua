@@ -1,4 +1,4 @@
---// Lemon Hub - Paper To Plane (Ultimate Edition)
+--// Lemon Hub - Paper To Plane (Masterpiece Edition)
 --// Developed by NamDevXHub
 
 local TweenService = game:GetService("TweenService")
@@ -16,16 +16,17 @@ end
 
 local Library = {}
 
--- Bảng màu Neon Vàng & Xanh Cyan (Phong cách Cyberpunk / Glassmorphism hiện đại nhất)
+-- Bảng màu Neon Vàng Chanh & Xanh Cyan Đẳng Cấp
 Library.Theme = {
-    Background = Color3.fromRGB(12, 12, 16),
-    Sidebar = Color3.fromRGB(18, 18, 24),
-    Element = Color3.fromRGB(24, 24, 34),
-    ElementHover = Color3.fromRGB(32, 32, 46),
-    AccentYellow = Color3.fromRGB(255, 220, 0),
-    AccentCyan = Color3.fromRGB(0, 245, 255),
-    TextLight = Color3.fromRGB(250, 250, 250),
-    TextDim = Color3.fromRGB(150, 150, 170)
+    Background = Color3.fromRGB(13, 13, 18),
+    Topbar = Color3.fromRGB(18, 18, 26),
+    Sidebar = Color3.fromRGB(16, 16, 22),
+    Element = Color3.fromRGB(22, 22, 32),
+    ElementHover = Color3.fromRGB(30, 30, 44),
+    AccentYellow = Color3.fromRGB(255, 215, 0),
+    AccentCyan = Color3.fromRGB(0, 240, 255),
+    TextLight = Color3.fromRGB(240, 240, 250),
+    TextDim = Color3.fromRGB(140, 140, 165)
 }
 
 function Library:CreateWindow(titleText)
@@ -34,7 +35,7 @@ function Library:CreateWindow(titleText)
     ScreenGui.Parent = CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- Khung chính với bo góc mượt mà và bóng mờ
+    -- Khung chính
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -48,41 +49,41 @@ function Library:CreateWindow(titleText)
 
     local MainStroke = Instance.new("UIStroke")
     MainStroke.Color = Library.Theme.AccentYellow
-    MainStroke.Transparency = 0.3
-    MainStroke.Thickness = 1.8
+    MainStroke.Transparency = 0.2
+    MainStroke.Thickness = 2
     MainStroke.Parent = MainFrame
 
-    -- Topbar (Thanh tiêu đề & Kéo thả cực mượt)
+    -- Topbar (Thanh tiêu đề hỗ trợ kéo thả hoàn hảo)
     local Topbar = Instance.new("Frame")
-    Topbar.Size = UDim2.new(1, 0, 0, 46)
-    Topbar.BackgroundColor3 = Library.Theme.Sidebar
+    Topbar.Size = UDim2.new(1, 0, 0, 45)
+    Topbar.BackgroundColor3 = Library.Theme.Topbar
     Topbar.BorderSizePixel = 0
     Topbar.Parent = MainFrame
     Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 12)
 
-    -- Sửa lại viền dưới của Topbar cho phẳng đẹp
+    -- Che góc vuông ở dưới của Topbar
     local TopbarCover = Instance.new("Frame")
     TopbarCover.Size = UDim2.new(1, 0, 0, 10)
     TopbarCover.Position = UDim2.new(0, 0, 1, -10)
-    TopbarCover.BackgroundColor3 = Library.Theme.Sidebar
+    TopbarCover.BackgroundColor3 = Library.Theme.Topbar
     TopbarCover.BorderSizePixel = 0
     TopbarCover.Parent = Topbar
 
     local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(0, 340, 1, 0)
+    Title.Size = UDim2.new(0, 350, 1, 0)
     Title.Position = UDim2.new(0, 16, 0, 0)
     Title.BackgroundTransparency = 1
     Title.Text = titleText
     Title.RichText = true
     Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
+    Title.TextSize = 15
     Title.TextColor3 = Library.Theme.AccentYellow
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = Topbar
 
     local Credit = Instance.new("TextLabel")
     Credit.Size = UDim2.new(0, 150, 1, 0)
-    Credit.Position = UDim2.new(1, -195, 0, 0)
+    Credit.Position = UDim2.new(1, -190, 0, 0)
     Credit.BackgroundTransparency = 1
     Credit.Text = "by NamDevXHub"
     Credit.Font = Enum.Font.GothamMedium
@@ -91,11 +92,11 @@ function Library:CreateWindow(titleText)
     Credit.TextXAlignment = Enum.TextXAlignment.Right
     Credit.Parent = Topbar
 
-    -- Nút Đóng UI
+    -- Nút đóng UI (X)
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 28, 0, 28)
-    CloseBtn.Position = UDim2.new(1, -36, 0, 9)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(235, 60, 70)
+    CloseBtn.Position = UDim2.new(1, -36, 0, 8.5)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(230, 50, 60)
     CloseBtn.Text = "✕"
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.TextSize = 13
@@ -107,42 +108,44 @@ function Library:CreateWindow(titleText)
         ScreenGui:Destroy()
     end)
 
-    -- Phím tắt RightControl ẩn hiện UI
+    -- Phím tắt RightControl ẩn/hiện menu
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
             MainFrame.Visible = not MainFrame.Visible
         end
     end)
 
-    -- Hệ thống kéo thả menu mượt mà chuẩn xác
+    -- Tính năng Kéo thả Menu (Draggable) chuẩn xác
     local dragging, dragInput, dragStart, startPos
     Topbar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = MainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
+
     Topbar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
+
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
 
-    -- Sidebar chứa danh sách Tab
+    -- Sidebar chứa Tab
     local Sidebar = Instance.new("ScrollingFrame")
-    Sidebar.Size = UDim2.new(0, 145, 1, -58)
+    Sidebar.Size = UDim2.new(0, 145, 1, -55)
     Sidebar.Position = UDim2.new(0, 8, 0, 50)
     Sidebar.BackgroundTransparency = 1
     Sidebar.ScrollBarThickness = 0
@@ -152,9 +155,8 @@ function Library:CreateWindow(titleText)
     SidebarLayout.Padding = UDim.new(0, 8)
     SidebarLayout.Parent = Sidebar
 
-    -- Container chứa nội dung các trang
     local PagesContainer = Instance.new("Frame")
-    PagesContainer.Size = UDim2.new(1, -162, 1, -58)
+    PagesContainer.Size = UDim2.new(1, -162, 1, -55)
     PagesContainer.Position = UDim2.new(0, 158, 0, 50)
     PagesContainer.BackgroundTransparency = 1
     PagesContainer.Parent = MainFrame
@@ -175,7 +177,7 @@ function Library:CreateWindow(titleText)
         Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 8)
 
         local TabIndicator = Instance.new("Frame")
-        TabIndicator.Size = UDim2.new(0, 3, 0, 20)
+        TabIndicator.Size = UDim2.new(0, 4, 0, 20)
         TabIndicator.Position = UDim2.new(0, 0, 0.5, -10)
         TabIndicator.BackgroundColor3 = Library.Theme.AccentYellow
         TabIndicator.Visible = FirstTab
@@ -215,7 +217,7 @@ function Library:CreateWindow(titleText)
 
         local Tab = {}
 
-        -- Nút bấm (Button)
+        -- Nút bấm thông thường (Button)
         function Tab:AddButton(text, callback)
             local Btn = Instance.new("TextButton")
             Btn.Size = UDim2.new(1, -10, 0, 40)
@@ -230,8 +232,8 @@ function Library:CreateWindow(titleText)
 
             local Stroke = Instance.new("UIStroke", Btn)
             Stroke.Color = Library.Theme.AccentCyan
-            Stroke.Transparency = 0.7
-            Stroke.Thickness = 1
+            Stroke.Transparency = 0.6
+            Stroke.Thickness = 1.2
 
             Btn.MouseButton1Click:Connect(function()
                 TweenService:Create(Btn, TweenInfo.new(0.1), {BackgroundColor3 = Library.Theme.AccentCyan, TextColor3 = Library.Theme.Background}):Play()
@@ -241,7 +243,7 @@ function Library:CreateWindow(titleText)
             end)
         end
 
-        -- Nút Bật/Tắt (Toggle) dạng hình vuông bo góc cao cấp
+        -- Nút Toggle Bật/Tắt (Hình vuông bo góc cực đẹp, rõ ràng)
         function Tab:AddToggle(text, default, callback)
             local state = default or false
             local Toggle = Instance.new("TextButton")
@@ -252,7 +254,7 @@ function Library:CreateWindow(titleText)
             Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 8)
 
             local Label = Instance.new("TextLabel")
-            Label.Size = UDim2.new(1, -60, 1, 0)
+            Label.Size = UDim2.new(1, -65, 1, 0)
             Label.Position = UDim2.new(0, 12, 0, 0)
             Label.BackgroundTransparency = 1
             Label.Text = text
@@ -262,20 +264,19 @@ function Library:CreateWindow(titleText)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Toggle
 
-            -- Ô vuông bo góc công tắc
+            -- Ô vuông công tắc bo góc
             local SquareBox = Instance.new("Frame")
             SquareBox.Size = UDim2.new(0, 24, 0, 24)
             SquareBox.Position = UDim2.new(1, -36, 0.5, -12)
-            SquareBox.BackgroundColor3 = state and Library.Theme.AccentYellow or Color3.fromRGB(35, 35, 48)
+            SquareBox.BackgroundColor3 = state and Library.Theme.AccentYellow or Color3.fromRGB(35, 35, 50)
             SquareBox.Parent = Toggle
             Instance.new("UICorner", SquareBox).CornerRadius = UDim.new(0, 6)
 
             local BoxStroke = Instance.new("UIStroke", SquareBox)
             BoxStroke.Color = state and Library.Theme.AccentYellow or Library.Theme.AccentCyan
-            BoxStroke.Transparency = state and 0 or 0.4
+            BoxStroke.Transparency = state and 0 or 0.3
             BoxStroke.Thickness = 1.5
 
-            -- Dấu check nhỏ bên trong khi bật
             local CheckMark = Instance.new("TextLabel")
             CheckMark.Size = UDim2.new(1, 0, 1, 0)
             CheckMark.BackgroundTransparency = 1
@@ -288,10 +289,10 @@ function Library:CreateWindow(titleText)
 
             Toggle.MouseButton1Click:Connect(function()
                 state = not state
-                local targetColor = state and Library.Theme.AccentYellow or Color3.fromRGB(35, 35, 48)
+                local targetColor = state and Library.Theme.AccentYellow or Color3.fromRGB(35, 35, 50)
                 TweenService:Create(SquareBox, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
                 BoxStroke.Color = state and Library.Theme.AccentYellow or Library.Theme.AccentCyan
-                BoxStroke.Transparency = state and 0 or 0.4
+                BoxStroke.Transparency = state and 0 or 0.3
                 CheckMark.Visible = state
                 pcall(callback, state)
             end)
@@ -311,49 +312,75 @@ local Window = Library:CreateWindow("🍋 LEMON HUB <font color='#00F0FF'>| Pape
 local FarmTab = Window:CreateTab("Auto Farm")
 local MiscTab = Window:CreateTab("Misc & Shop")
 
--- Hàm tìm RemoteEvent thông minh dựa trên từ khóa trong game
-local function GetRemote(keyword)
-    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-        if v:IsA("RemoteEvent") and v.Name:lower():find(keyword:lower()) then
-            return v
+-- Hàm quét và tìm chính xác RemoteEvents trong game Paper To Plane
+local function GetServiceRemote(serviceName, remoteName)
+    local success, result = pcall(function()
+        local knitPackages = ReplicatedStorage:FindFirstChild("Packages") and ReplicatedStorage.Packages:FindFirstChild("Knit")
+        if knitPackages then
+            local services = knitPackages:FindFirstChild("Services")
+            if services and services:FindFirstChild(serviceName) then
+                local serv = services[serviceName]
+                if serv:FindFirstChild("RE") and serv.RE:FindFirstChild(remoteName) then
+                    return serv.RE[remoteName]
+                end
+            end
         end
-    end
-    return nil
+        -- Quét dự phòng toàn bộ ReplicatedStorage nếu không thấy cấu trúc Knit
+        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") and v.Name:lower():find(remoteName:lower()) then
+                return v
+            end
+        end
+    end)
+    return success and result or nil
 end
 
--- 1. Auto Train (Tự động luyện tập tăng sức mạnh)
+-- 1. Auto Train (Tự động luyện tập lực ném)
 FarmTab:AddToggle("Auto Train / Throw Power", false, function(state)
     _G.AutoTrain = state
     task.spawn(function()
         while _G.AutoTrain do
             task.wait(0.15)
             pcall(function()
-                local remote = GetRemote("train") or GetRemote("power") or GetRemote("strength")
+                local remote = GetServiceRemote("TrainService", "Train") or GetServiceRemote("TrainService", "Upgrade")
                 if remote then
                     remote:FireServer()
+                else
+                    -- Quét backup tổng quát
+                    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                        if v:IsA("RemoteEvent") and (v.Name:lower():find("train") or v.Name:lower():find("power")) then
+                            v:FireServer()
+                        end
+                    end
                 end
             end)
         end
     end)
 end)
 
--- 2. Auto Launch Plane (Tự động ném máy bay liên tục)
+-- 2. Auto Launch Plane (Tự động phóng máy bay)
 FarmTab:AddToggle("Auto Launch Plane", false, function(state)
     _G.AutoLaunch = state
     task.spawn(function()
         while _G.AutoLaunch do
-            task.wait(1.2)
+            task.wait(1.5)
             pcall(function()
-                local remote = GetRemote("launch") or GetRemote("fly") or GetRemote("throw")
+                local remote = GetServiceRemote("FlightService", "Launch") or GetServiceRemote("FlightService", "Fly")
                 if remote then
-                    remote:FireServer(100) -- Truyền lực tối đa
+                    remote:FireServer(100)
+                else
+                    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                        if v:IsA("RemoteEvent") and (v.Name:lower():find("launch") or v.Name:lower():find("fly")) then
+                            v:FireServer(100)
+                        end
+                    end
                 end
             end)
         end
     end)
 end)
 
--- 3. Auto Collect Rings / Coins (Tự động bay đến nhặt nhẫn và tiền)
+-- 3. Auto Collect Rings / Coins (Tự động nhặt vòng và tiền)
 FarmTab:AddToggle("Auto Collect Rings / Coins", false, function(state)
     _G.AutoCollect = state
     task.spawn(function()
@@ -364,7 +391,7 @@ FarmTab:AddToggle("Auto Collect Rings / Coins", false, function(state)
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     for _, folder in pairs(workspace:GetChildren()) do
                         local fName = folder.Name:lower()
-                        if fName:find("ring") or fName:find("coin") or fName:find("collect") or fName:find("drop") then
+                        if fName:find("ring") or fName:find("coin") or fName:find("collect") or fName:find("drop") or fName:find("item") then
                             for _, obj in pairs(folder:GetChildren()) do
                                 local targetPart = nil
                                 if obj:IsA("BasePart") then
@@ -388,7 +415,7 @@ FarmTab:AddToggle("Auto Collect Rings / Coins", false, function(state)
     end)
 end)
 
--- 4. Auto Dodge Obstacles (Tự động né vật thể / Xuyên vật cản khi bay)
+-- 4. Auto Dodge Obstacles (Né vật thể / Xuyên tường khi bay)
 local dodgeConnection
 FarmTab:AddToggle("Auto Dodge Obstacles (Né vật thể)", false, function(state)
     _G.AutoDodge = state
@@ -403,10 +430,9 @@ FarmTab:AddToggle("Auto Dodge Obstacles (Né vật thể)", false, function(stat
                         end
                     end
                 end
-                -- Vô hiệu hóa va chạm với mọi vật cản trong map
                 for _, obj in pairs(workspace:GetChildren()) do
                     local name = obj.Name:lower()
-                    if name:find("obstacle") or name:find("wall") or name:find("building") or name:find("tree") or name:find("prop") then
+                    if name:find("obstacle") or name:find("wall") or name:find("building") or name:find("tree") or name:find("prop") or name:find("map") then
                         for _, p in pairs(obj:GetDescendants()) do
                             if p:IsA("BasePart") then
                                 p.CanCollide = false
