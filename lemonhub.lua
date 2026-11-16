@@ -1,4 +1,4 @@
---// Lemon Hub - Paper To Plane Script (Updated)
+--// Lemon Hub - Paper To Plane Script (Fixed & Enhanced UI)
 --// Developed by NamDevXHub
 
 local TweenService = game:GetService("TweenService")
@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có để tránh trùng lặp
@@ -214,17 +215,18 @@ function Library:CreateWindow(titleText)
             end)
         end
 
+        -- Thiết kế lại nút Toggle: Hình vuông bo góc, có viền nét căng hiện đại
         function Tab:AddToggle(text, default, callback)
             local state = default or false
             local Toggle = Instance.new("TextButton")
-            Toggle.Size = UDim2.new(1, -8, 0, 36)
+            Toggle.Size = UDim2.new(1, -8, 0, 38)
             Toggle.BackgroundColor3 = Library.Theme.Element
             Toggle.Text = ""
             Toggle.Parent = Page
             Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 6)
 
             local Label = Instance.new("TextLabel")
-            Label.Size = UDim2.new(1, -50, 1, 0)
+            Label.Size = UDim2.new(1, -55, 1, 0)
             Label.Position = UDim2.new(0, 10, 0, 0)
             Label.BackgroundTransparency = 1
             Label.Text = text
@@ -234,17 +236,25 @@ function Library:CreateWindow(titleText)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Toggle
 
-            local Indicator = Instance.new("Frame")
-            Indicator.Size = UDim2.new(0, 22, 0, 22)
-            Indicator.Position = UDim2.new(1, -32, 0.5, -11)
-            Indicator.BackgroundColor3 = state and Library.Theme.AccentYellow or Color3.fromRGB(50, 50, 65)
-            Indicator.Parent = Toggle
-            Instance.new("UICorner", Indicator).CornerRadius = UDim.new(0, 5)
+            -- Khung vuông bo góc làm công tắc
+            local Box = Instance.new("Frame")
+            Box.Size = UDim2.new(0, 22, 0, 22)
+            Box.Position = UDim2.new(1, -32, 0.5, -11)
+            Box.BackgroundColor3 = state and Library.Theme.AccentYellow or Color3.fromRGB(38, 38, 50)
+            Box.Parent = Toggle
+            Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 5)
 
-            Toggle.MouseButton1ClientConnect = Toggle.MouseButton1Click:Connect(function()
+            local BoxStroke = Instance.new("UIStroke", Box)
+            BoxStroke.Color = state and Library.Theme.AccentYellow or Library.Theme.AccentCyan
+            BoxStroke.Transparency = state and 0 or 0.5
+            BoxStroke.Thickness = 1.5
+
+            Toggle.MouseButton1Click:Connect(function()
                 state = not state
-                local targetColor = state and Library.Theme.AccentYellow or Color3.fromRGB(50, 50, 65)
-                TweenService:Create(Indicator, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+                local targetColor = state and Library.Theme.AccentYellow or Color3.fromRGB(38, 38, 50)
+                TweenService:Create(Box, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+                BoxStroke.Color = state and Library.Theme.AccentYellow or Library.Theme.AccentCyan
+                BoxStroke.Transparency = state and 0 or 0.5
                 pcall(callback, state)
             end)
         end
@@ -256,7 +266,7 @@ function Library:CreateWindow(titleText)
 end
 
 -- ==========================================
--- KHỞI TẠO GIAO DIỆN & TÍNH NĂNG CHO PAPER TO PLANE
+-- KHỞI TẠO GIAO DIỆN & TÍNH NĂNG PAPER TO PLANE
 -- ==========================================
 local Window = Library:CreateWindow("🍋 LEMON HUB <font color='#00F0FF'>| Paper To Plane</font>")
 
@@ -268,23 +278,31 @@ FarmTab:AddToggle("Auto Train / Throw Power", false, function(state)
     _G.AutoTrain = state
     task.spawn(function()
         while _G.AutoTrain do
-            task.wait(0.1)
+            task.wait(0.2)
             pcall(function()
-                game:GetService("ReplicatedStorage"):FindFirstChild("Packages", true):FindFirstChild("Knit", true).Services.TrainService.RE.Train:FireServer()
+                -- Tìm và kích hoạt Remote của game Paper To Plane
+                for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and (v.Name:lower():find("train") or v.Name:lower():find("power") or v.Name:lower():find("strength")) then
+                        v:FireServer()
+                    end
+                end
             end)
         end
     end)
 end)
 
--- 2. Auto Launch Plane
+-- 2. Auto Launch Plane (Đã sửa lại quét đúng Remote ném máy bay)
 FarmTab:AddToggle("Auto Launch Plane", false, function(state)
     _G.AutoLaunch = state
     task.spawn(function()
         while _G.AutoLaunch do
-            task.wait(1)
+            task.wait(1.5)
             pcall(function()
-                local args = { [1] = 100 }
-                game:GetService("ReplicatedStorage"):FindFirstChild("Packages", true):FindFirstChild("Knit", true).Services.FlightService.RE.Launch:FireServer(unpack(args))
+                for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and (v.Name:lower():find("launch") or v.Name:lower():find("fly") or v.Name:lower():find("throw")) then
+                        v:FireServer(100) -- Gửi giá trị lực ném
+                    end
+                end
             end)
         end
     end)
@@ -297,9 +315,18 @@ FarmTab:AddToggle("Auto Collect Rings / Coins", false, function(state)
         while _G.AutoCollect do
             task.wait(0.5)
             pcall(function()
-                for _, ring in pairs(workspace:FindFirstChild("Rings") and workspace.Rings:GetChildren() or {}) do
-                    if ring:FindFirstChild("PrimaryPart") or ring:IsA("BasePart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = ring.CFrame
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    for _, folder in pairs(workspace:GetChildren()) do
+                        if folder.Name:lower():find("ring") or folder.Name:lower():find("coin") or folder.Name:lower():find("collect") then
+                            for _, obj in pairs(folder:GetChildren()) do
+                                if obj:IsA("BasePart") or obj:FindFirstChildOfClass("BasePart") then
+                                    local targetPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("BasePart")
+                                    char.HumanoidRootPart.CFrame = targetPart.CFrame
+                                    task.wait(0.1)
+                                end
+                            end
+                        end
                     end
                 end
             end)
@@ -307,26 +334,28 @@ FarmTab:AddToggle("Auto Collect Rings / Coins", false, function(state)
     end)
 end)
 
--- 4. Tính năng Né vật thể (Auto Dodge / No Clip Obstacles khi bay)
-local dodgeConnection
+-- 4. Né vật thể (Auto Dodge / No Clip khi bay)
+local dodgeConn
 FarmTab:AddToggle("Auto Dodge Obstacles (Né vật thể)", false, function(state)
     _G.AutoDodge = state
     if _G.AutoDodge then
-        dodgeConnection = RunService.Stepped:Connect(function()
+        dodgeConn = RunService.Stepped:Connect(function()
             pcall(function()
-                local character = LocalPlayer.Character
-                if character then
-                    -- Cho phép máy bay/nhân vật xuyên qua các vật cản (CanCollide = false)
-                    for _, part in pairs(character:GetDescendants()) do
+                local char = LocalPlayer.Character
+                if char then
+                    -- Tắt va chạm toàn bộ phần của nhân vật và máy bay để xuyên qua mọi chướng ngại vật
+                    for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
                         end
                     end
-                    -- Nếu có các vật cản cụ thể trong workspace (ví dụ folder Obstacles hoặc Buildings)
-                    if workspace:FindFirstChild("Obstacles") then
-                        for _, obj in pairs(workspace.Obstacles:GetChildren()) do
-                            if obj:IsA("BasePart") then
-                                obj.CanCollide = false
+                end
+                -- Tắt va chạm của tất cả vật cản trong Map
+                for _, obj in pairs(workspace:GetChildren()) do
+                    if obj.Name:lower():find("obstacle") or obj.Name:lower():find("wall") or obj.Name:lower():find("building") or obj.Name:lower():find("tree") then
+                        for _, p in pairs(obj:GetDescendants()) do
+                            if p:IsA("BasePart") then
+                                p.CanCollide = false
                             end
                         end
                     end
@@ -334,9 +363,9 @@ FarmTab:AddToggle("Auto Dodge Obstacles (Né vật thể)", false, function(stat
             end)
         end)
     else
-        if dodgeConnection then
-            dodgeConnection:Disconnect()
-            dodgeConnection = nil
+        if dodgeConn then
+            dodgeConn:Disconnect()
+            dodgeConn = nil
         end
     end
 end)
