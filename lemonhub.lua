@@ -1,6 +1,6 @@
 --================================================
 -- 🍋 LEMON HUB V3 | ZYRONX MOBILE EDITION
--- UI ONLY — KHÔNG CHỨA BẤT KỲ CHỨC NĂNG NÀO
+-- CLEAN UI — KHÔNG CHỨC NĂNG / NO FEATURES
 --================================================
 
 local Players = game:GetService("Players")
@@ -15,47 +15,47 @@ if Old then Old:Destroy() end
 
 --============ PALETTE ============
 local C = {
-    Bg        = Color3.fromRGB(12, 13, 18),
-    Header    = Color3.fromRGB(19, 21, 29),
-    Card      = Color3.fromRGB(24, 26, 35),
-    CardHover = Color3.fromRGB(33, 36, 48),
-    Accent    = Color3.fromRGB(255, 210, 35),
-    Accent2   = Color3.fromRGB(255, 160, 0),
-    Text      = Color3.fromRGB(245, 246, 250),
-    Muted     = Color3.fromRGB(138, 144, 162),
-    Track     = Color3.fromRGB(46, 50, 64),
-    Line      = Color3.fromRGB(52, 56, 72),
-    Danger    = Color3.fromRGB(214, 72, 72),
+    BgA     = Color3.fromRGB(26, 29, 40),
+    BgB     = Color3.fromRGB(11, 12, 18),
+    Card    = Color3.fromRGB(30, 33, 48),
+    CardHi  = Color3.fromRGB(40, 44, 63),
+    Line    = Color3.fromRGB(58, 63, 85),
+    Accent  = Color3.fromRGB(255, 209, 35),
+    Accent2 = Color3.fromRGB(255, 149, 0),
+    Text    = Color3.fromRGB(245, 246, 250),
+    Muted   = Color3.fromRGB(138, 144, 165),
+    Muted2  = Color3.fromRGB(90, 95, 117),
+    Green   = Color3.fromRGB(80, 220, 130),
+    Danger  = Color3.fromRGB(220, 75, 75),
 }
 
-local FONT_BLACK = Enum.Font.GothamBlack
-local FONT_BOLD  = Enum.Font.GothamBold
-local FONT_REG   = Enum.Font.Gotham
+local FB  = Enum.Font.GothamBlack
+local FBD = Enum.Font.GothamBold
+local FR  = Enum.Font.Gotham
 
 --============ HELPERS ============
 local function tw(obj, props, t, style, dir)
-    local info = TweenInfo.new(t or 0.18,
-        style or Enum.EasingStyle.Quart,
-        dir or Enum.EasingDirection.Out)
-    local a = TweenService:Create(obj, info, props)
-    a:Play()
-    return a
+    TweenService:Create(obj,
+        TweenInfo.new(t or 0.18,
+            style or Enum.EasingStyle.Quart,
+            dir or Enum.EasingDirection.Out),
+        props):Play()
 end
 
-local function corner(obj, r)
+local function corner(p, r)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, r)
-    c.Parent = obj
+    c.Parent = p
     return c
 end
 
-local function stroke(obj, color, thickness, transparency)
+local function stroke(p, color, th, tr)
     local s = Instance.new("UIStroke")
     s.Color = color
-    s.Thickness = thickness
-    s.Transparency = transparency or 0
+    s.Thickness = th
+    s.Transparency = tr or 0
     s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    s.Parent = obj
+    s.Parent = p
     return s
 end
 
@@ -72,50 +72,56 @@ local Window = Instance.new("Frame")
 Window.Name = "Window"
 Window.AnchorPoint = Vector2.new(0.5, 0.5)
 Window.Position = UDim2.fromScale(0.5, 0.5)
-Window.Size = UDim2.fromOffset(320, 410)
-Window.BackgroundColor3 = C.Bg
+Window.Size = UDim2.fromOffset(300, 380)
+Window.BackgroundColor3 = C.BgA
 Window.BorderSizePixel = 0
 Window.ClipsDescendants = true
 Window.Active = true
 Window.Parent = Screen
-corner(Window, 18)
-stroke(Window, C.Line, 1.5, 0.25)
+corner(Window, 20)
+
+local WinGrad = Instance.new("UIGradient")
+WinGrad.Color = ColorSequence.new(C.BgA, C.BgB)
+WinGrad.Rotation = 135
+WinGrad.Parent = Window
+
+stroke(Window, C.Line, 1.5, 0.4)
 
 --============ HEADER ============
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 54)
-Header.BackgroundColor3 = C.Header
+Header.Size = UDim2.new(1, 0, 0, 56)
+Header.BackgroundColor3 = Color3.fromRGB(22, 25, 35)
 Header.BorderSizePixel = 0
 Header.Parent = Window
-corner(Header, 18)
+corner(Header, 20)
 
--- che 2 góc dưới của header
-local HeaderFill = Instance.new("Frame")
-HeaderFill.Position = UDim2.new(0, 0, 0, 34)
-HeaderFill.Size = UDim2.new(1, 0, 0, 20)
-HeaderFill.BackgroundColor3 = C.Header
-HeaderFill.BorderSizePixel = 0
-HeaderFill.ZIndex = 2
-HeaderFill.Parent = Header
+-- che 2 goc duoi cua header
+local HeaderMask = Instance.new("Frame")
+HeaderMask.Position = UDim2.new(0, 0, 0, 32)
+HeaderMask.Size = UDim2.new(1, 0, 0, 24)
+HeaderMask.BackgroundColor3 = Color3.fromRGB(22, 25, 35)
+HeaderMask.BorderSizePixel = 0
+HeaderMask.ZIndex = 2
+HeaderMask.Parent = Header
 
 local HeaderLine = Instance.new("Frame")
-HeaderLine.Position = UDim2.new(0, 0, 1, -1)
-HeaderLine.Size = UDim2.new(1, 0, 0, 1)
-HeaderLine.BackgroundColor3 = C.Accent
-HeaderLine.BackgroundTransparency = 0.75
+HeaderLine.Position = UDim2.new(0, 14, 1, -1)
+HeaderLine.Size = UDim2.new(1, -28, 0, 1)
+HeaderLine.BackgroundColor3 = C.Line
+HeaderLine.BackgroundTransparency = 0.3
 HeaderLine.BorderSizePixel = 0
 HeaderLine.ZIndex = 3
 HeaderLine.Parent = Header
 
 -- Logo
 local Logo = Instance.new("Frame")
-Logo.Size = UDim2.fromOffset(26, 26)
-Logo.Position = UDim2.new(0, 15, 0.5, -13)
+Logo.Size = UDim2.fromOffset(32, 32)
+Logo.Position = UDim2.new(0, 16, 0.5, -16)
 Logo.BackgroundColor3 = C.Accent
 Logo.BorderSizePixel = 0
 Logo.ZIndex = 4
 Logo.Parent = Header
-corner(Logo, 8)
+corner(Logo, 10)
 
 local LogoGrad = Instance.new("UIGradient")
 LogoGrad.Color = ColorSequence.new(C.Accent, C.Accent2)
@@ -126,246 +132,277 @@ local LogoText = Instance.new("TextLabel")
 LogoText.Size = UDim2.fromScale(1, 1)
 LogoText.BackgroundTransparency = 1
 LogoText.Text = "🍋"
-LogoText.TextSize = 14
+LogoText.TextSize = 16
 LogoText.ZIndex = 5
 LogoText.Parent = Logo
 
 -- Title
 local Title = Instance.new("TextLabel")
-Title.Position = UDim2.new(0, 50, 0, 0)
-Title.Size = UDim2.new(1, -150, 1, 0)
+Title.Position = UDim2.new(0, 58, 0, 12)
+Title.Size = UDim2.new(1, -160, 0, 18)
 Title.BackgroundTransparency = 1
 Title.Text = "LEMON HUB"
 Title.TextColor3 = C.Text
-Title.Font = FONT_BLACK
+Title.Font = FB
 Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.ZIndex = 4
 Title.Parent = Header
 
-local Version = Instance.new("TextLabel")
-Version.Position = UDim2.new(0, 50, 0, 30)
-Version.Size = UDim2.new(1, -150, 0, 14)
-Version.BackgroundTransparency = 1
-Version.Text = "V3  •  ZYRONX EDITION"
-Version.TextColor3 = C.Muted
-Version.Font = FONT_BOLD
-Version.TextSize = 8
-Version.TextXAlignment = Enum.TextXAlignment.Left
-Version.ZIndex = 4
-Version.Parent = Header
+-- Subtitle
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Position = UDim2.new(0, 58, 0, 32)
+SubTitle.Size = UDim2.new(1, -160, 0, 12)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "V3  •  ZYRONX EDITION"
+SubTitle.TextColor3 = C.Muted
+SubTitle.Font = FBD
+SubTitle.TextSize = 8
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.ZIndex = 4
+SubTitle.Parent = Header
 
--- Window buttons
-local function makeWinBtn(pos, label, hoverColor)
+-- Window Buttons
+local function makeWinBtn(pos, label, hoverColor, textHover)
     local b = Instance.new("TextButton")
     b.Size = UDim2.fromOffset(28, 28)
     b.Position = pos
-    b.BackgroundColor3 = C.Bg
+    b.BackgroundColor3 = Color3.fromRGB(30, 33, 48)
     b.Text = label
     b.TextColor3 = C.Muted
-    b.Font = FONT_BOLD
-    b.TextSize = 15
+    b.Font = FBD
+    b.TextSize = 14
     b.AutoButtonColor = false
     b.ZIndex = 4
     b.Parent = Header
     corner(b, 8)
 
     b.MouseEnter:Connect(function()
-        tw(b, {BackgroundColor3 = hoverColor, TextColor3 = C.Text}, 0.15)
+        tw(b, {BackgroundColor3 = hoverColor, TextColor3 = textHover or C.Text}, 0.15)
     end)
     b.MouseLeave:Connect(function()
-        tw(b, {BackgroundColor3 = C.Bg, TextColor3 = C.Muted}, 0.15)
+        tw(b, {BackgroundColor3 = Color3.fromRGB(30, 33, 48), TextColor3 = C.Muted}, 0.15)
     end)
     return b
 end
 
-local MinBtn   = makeWinBtn(UDim2.new(1, -70, 0, 13), "–", C.CardHover)
-local CloseBtn = makeWinBtn(UDim2.new(1, -38, 0, 13), "✕", C.Danger)
+local MinBtn   = makeWinBtn(UDim2.new(1, -72, 0, 14), "–", C.CardHi)
+local CloseBtn = makeWinBtn(UDim2.new(1, -40, 0, 14), "✕", C.Danger, C.Text)
 
---============ BODY ============
-local Body = Instance.new("Frame")
-Body.Position = UDim2.fromOffset(0, 54)
-Body.Size = UDim2.new(1, 0, 1, -54)
-Body.BackgroundTransparency = 1
-Body.Parent = Window
+--============ CONTENT ============
+local Content = Instance.new("Frame")
+Content.Position = UDim2.fromOffset(0, 56)
+Content.Size = UDim2.new(1, 0, 1, -56)
+Content.BackgroundTransparency = 1
+Content.Parent = Window
 
-local SectionTitle = Instance.new("TextLabel")
-SectionTitle.Position = UDim2.fromOffset(16, 12)
-SectionTitle.Size = UDim2.new(1, -120, 0, 18)
-SectionTitle.BackgroundTransparency = 1
-SectionTitle.Text = "AUTOMATIC FEATURES"
-SectionTitle.TextColor3 = C.Accent
-SectionTitle.Font = FONT_BOLD
-SectionTitle.TextSize = 10
-SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-SectionTitle.Parent = Body
+-- Hero Glow
+local HeroGlow = Instance.new("Frame")
+HeroGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+HeroGlow.Position = UDim2.new(0.5, 0, 0, 80)
+HeroGlow.Size = UDim2.fromOffset(180, 180)
+HeroGlow.BackgroundColor3 = C.Accent
+HeroGlow.BackgroundTransparency = 0.94
+HeroGlow.BorderSizePixel = 0
+HeroGlow.Parent = Content
+corner(HeroGlow, 90)
 
-local Badge = Instance.new("TextLabel")
-Badge.AnchorPoint = Vector2.new(1, 0)
-Badge.Position = UDim2.new(1, -16, 0, 12)
-Badge.Size = UDim2.fromOffset(58, 18)
-Badge.BackgroundColor3 = Color3.fromRGB(40, 43, 56)
-Badge.Text = "UI ONLY"
-Badge.TextColor3 = C.Muted
-Badge.Font = FONT_BOLD
-Badge.TextSize = 8
-Badge.Parent = Body
-corner(Badge, 6)
+-- Hero Badge
+local Hero = Instance.new("Frame")
+Hero.AnchorPoint = Vector2.new(0.5, 0)
+Hero.Position = UDim2.new(0.5, 0, 0, 26)
+Hero.Size = UDim2.fromOffset(96, 96)
+Hero.BackgroundColor3 = C.Accent
+Hero.BorderSizePixel = 0
+Hero.Parent = Content
+corner(Hero, 48)
 
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Position = UDim2.fromOffset(14, 40)
-Scroll.Size = UDim2.new(1, -28, 1, -74)
-Scroll.BackgroundTransparency = 1
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 3
-Scroll.ScrollBarImageColor3 = C.Accent
-Scroll.ScrollBarImageTransparency = 0.35
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
-Scroll.Parent = Body
+local HeroGrad = Instance.new("UIGradient")
+HeroGrad.Color = ColorSequence.new(C.Accent, C.Accent2)
+HeroGrad.Rotation = 45
+HeroGrad.Parent = Hero
 
-local ListLayout = Instance.new("UIListLayout")
-ListLayout.Padding = UDim.new(0, 8)
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Parent = Scroll
+local HeroShadow = stroke(Hero, C.Accent, 0.5, 0.7)
+HeroShadow.Thickness = 1
 
-local ListPad = Instance.new("UIPadding")
-ListPad.PaddingTop = UDim.new(0, 2)
-ListPad.PaddingBottom = UDim.new(0, 10)
-ListPad.Parent = Scroll
+local HeroEmoji = Instance.new("TextLabel")
+HeroEmoji.Size = UDim2.fromScale(1, 1)
+HeroEmoji.BackgroundTransparency = 1
+HeroEmoji.Text = "🍋"
+HeroEmoji.TextSize = 44
+HeroEmoji.Parent = Hero
 
---============ CARD ============
-local function createCard(icon, title, subtitle)
+-- Pulse animation
+task.spawn(function()
+    while Screen.Parent do
+        tw(HeroGlow, {BackgroundTransparency = 0.97, Size = UDim2.fromOffset(200, 200)},
+            1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(1.8)
+        tw(HeroGlow, {BackgroundTransparency = 0.92, Size = UDim2.fromOffset(180, 180)},
+            1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(1.8)
+    end
+end)
+
+-- Big Title
+local BigTitle = Instance.new("TextLabel")
+BigTitle.AnchorPoint = Vector2.new(0.5, 0)
+BigTitle.Position = UDim2.new(0.5, 0, 0, 138)
+BigTitle.Size = UDim2.new(1, -40, 0, 26)
+BigTitle.BackgroundTransparency = 1
+BigTitle.Text = "LEMON HUB"
+BigTitle.TextColor3 = C.Text
+BigTitle.Font = FB
+BigTitle.TextSize = 22
+BigTitle.Parent = Content
+
+local BigTitleGrad = Instance.new("UIGradient")
+BigTitleGrad.Color = ColorSequence.new(C.Accent, C.Accent2)
+BigTitleGrad.Rotation = 0
+BigTitleGrad.Parent = BigTitle
+
+-- Subtitle
+local BigSub = Instance.new("TextLabel")
+BigSub.AnchorPoint = Vector2.new(0.5, 0)
+BigSub.Position = UDim2.new(0.5, 0, 0, 168)
+BigSub.Size = UDim2.new(1, -40, 0, 14)
+BigSub.BackgroundTransparency = 1
+BigSub.Text = "ZYRONX  •  MOBILE EDITION"
+BigSub.TextColor3 = C.Muted
+BigSub.Font = FBD
+BigSub.TextSize = 9
+BigSub.Parent = Content
+
+-- Divider
+local Divider = Instance.new("Frame")
+Divider.AnchorPoint = Vector2.new(0.5, 0)
+Divider.Position = UDim2.new(0.5, 0, 0, 196)
+Divider.Size = UDim2.fromOffset(56, 2)
+Divider.BackgroundColor3 = C.Line
+Divider.BackgroundTransparency = 0.3
+Divider.BorderSizePixel = 0
+Divider.Parent = Content
+corner(Divider, 1)
+
+-- Stats Row
+local StatsRow = Instance.new("Frame")
+StatsRow.Position = UDim2.fromOffset(16, 214)
+StatsRow.Size = UDim2.new(1, -32, 0, 76)
+StatsRow.BackgroundTransparency = 1
+StatsRow.Parent = Content
+
+local function statCard(icon, label, value, order)
+    local cardW = (StatsRow.AbsoluteSize.X - 16) / 3
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, -8, 0, 58)
+    card.Size = UDim2.fromOffset(cardW, 76)
+    card.Position = UDim2.fromOffset((order - 1) * (cardW + 8), 0)
     card.BackgroundColor3 = C.Card
     card.BorderSizePixel = 0
-    card.Parent = Scroll
+    card.Parent = StatsRow
     corner(card, 12)
-    local cs = stroke(card, C.Line, 1, 0.55)
+    stroke(card, C.Line, 1, 0.5)
 
-    -- icon
-    local iconBox = Instance.new("Frame")
-    iconBox.Size = UDim2.fromOffset(34, 34)
-    iconBox.Position = UDim2.new(0, 12, 0.5, -17)
-    iconBox.BackgroundColor3 = C.Accent
-    iconBox.BorderSizePixel = 0
-    iconBox.Parent = card
-    corner(iconBox, 10)
-
-    local ig = Instance.new("UIGradient")
-    ig.Color = ColorSequence.new(C.Accent, C.Accent2)
-    ig.Rotation = 45
-    ig.Parent = iconBox
-
-    local iconLabel = Instance.new("TextLabel")
-    iconLabel.Size = UDim2.fromScale(1, 1)
-    iconLabel.BackgroundTransparency = 1
-    iconLabel.Text = icon
-    iconLabel.TextSize = 15
-    iconLabel.Font = FONT_BOLD
-    iconLabel.TextColor3 = Color3.fromRGB(35, 28, 8)
-    iconLabel.Parent = iconBox
-
-    -- title
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Position = UDim2.new(0, 56, 0, 10)
-    titleLabel.Size = UDim2.new(1, -160, 0, 18)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title
-    titleLabel.TextColor3 = C.Text
-    titleLabel.Font = FONT_BOLD
-    titleLabel.TextSize = 12
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.Parent = card
-
-    -- subtitle
-    local subLabel = Instance.new("TextLabel")
-    subLabel.Position = UDim2.new(0, 56, 0, 30)
-    subLabel.Size = UDim2.new(1, -160, 0, 15)
-    subLabel.BackgroundTransparency = 1
-    subLabel.Text = subtitle
-    subLabel.TextColor3 = C.Muted
-    subLabel.Font = FONT_REG
-    subLabel.TextSize = 10
-    subLabel.TextXAlignment = Enum.TextXAlignment.Left
-    subLabel.Parent = card
-
-    -- toggle (thuần trang trí)
-    local toggle = Instance.new("TextButton")
-    toggle.Size = UDim2.fromOffset(42, 23)
-    toggle.Position = UDim2.new(1, -56, 0.5, -11.5)
-    toggle.BackgroundColor3 = C.Track
-    toggle.Text = ""
-    toggle.AutoButtonColor = false
-    toggle.Parent = card
-    corner(toggle, 12)
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.fromOffset(17, 17)
-    knob.Position = UDim2.new(0, 3, 0.5, -8.5)
-    knob.BackgroundColor3 = C.Muted
-    knob.BorderSizePixel = 0
-    knob.Parent = toggle
-    corner(knob, 9)
-
-    local on = false
-    toggle.MouseButton1Click:Connect(function()
-        on = not on
-        tw(toggle, {BackgroundColor3 = on and C.Accent or C.Track}, 0.2)
-        tw(knob, {
-            Position = on
-                and UDim2.new(1, -20, 0.5, -8.5)
-                or  UDim2.new(0, 3, 0.5, -8.5),
-            BackgroundColor3 = on
-                and Color3.fromRGB(35, 28, 8)
-                or  C.Muted
-        }, 0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    end)
-
-    -- hover
     card.MouseEnter:Connect(function()
-        tw(card, {BackgroundColor3 = C.CardHover}, 0.15)
-        tw(cs, {Transparency = 0.2}, 0.15)
+        tw(card, {BackgroundColor3 = C.CardHi}, 0.15)
     end)
     card.MouseLeave:Connect(function()
         tw(card, {BackgroundColor3 = C.Card}, 0.15)
-        tw(cs, {Transparency = 0.55}, 0.15)
     end)
+
+    local ico = Instance.new("TextLabel")
+    ico.Position = UDim2.new(0, 0, 0, 8)
+    ico.Size = UDim2.new(1, 0, 0, 22)
+    ico.BackgroundTransparency = 1
+    ico.Text = icon
+    ico.TextSize = 16
+    ico.Parent = card
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Position = UDim2.new(0, 0, 0, 34)
+    lbl.Size = UDim2.new(1, 0, 0, 12)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label
+    lbl.TextColor3 = C.Muted
+    lbl.Font = FBD
+    lbl.TextSize = 8
+    lbl.Parent = card
+
+    local val = Instance.new("TextLabel")
+    val.Position = UDim2.new(0, 0, 0, 50)
+    val.Size = UDim2.new(1, 0, 0, 18)
+    val.BackgroundTransparency = 1
+    val.Text = value
+    val.TextColor3 = C.Text
+    val.Font = FBD
+    val.TextSize = 12
+    val.Parent = card
 
     return card
 end
 
---============ DANH SÁCH (TRANG TRÍ) ============
-createCard("🎯", "AUTO THROW",   "Throw assistance")
-createCard("✈", "AUTO PILOT",   "Flight assistance")
-createCard("🛡", "AUTO DODGE",   "Obstacle warning")
-createCard("♻", "AUTO REBIRTH", "Rebirth assistance")
-createCard("⚡", "AUTO TRAINING","Training assistance")
+statCard("👤", "PLAYER", Player.DisplayName or Player.Name, 1)
+statCard("🏷", "VERSION", "V3", 2)
+statCard("📱", "PLATFORM", "Mobile", 3)
 
---============ FOOTER ============
+-- Status Pill
+local StatusPill = Instance.new("Frame")
+StatusPill.AnchorPoint = Vector2.new(0.5, 0)
+StatusPill.Position = UDim2.new(0.5, 0, 0, 308)
+StatusPill.Size = UDim2.fromOffset(96, 26)
+StatusPill.BackgroundColor3 = Color3.fromRGB(30, 36, 46)
+StatusPill.BorderSizePixel = 0
+StatusPill.Parent = Content
+corner(StatusPill, 13)
+stroke(StatusPill, C.Line, 1, 0.4)
+
+local StatusDot = Instance.new("Frame")
+StatusDot.Size = UDim2.fromOffset(7, 7)
+StatusDot.Position = UDim2.new(0, 12, 0.5, -3.5)
+StatusDot.BackgroundColor3 = C.Green
+StatusDot.BorderSizePixel = 0
+StatusDot.Parent = StatusPill
+corner(StatusDot, 4)
+
+task.spawn(function()
+    while Screen.Parent do
+        tw(StatusDot, {BackgroundTransparency = 0.4}, 0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(0.8)
+        tw(StatusDot, {BackgroundTransparency = 0}, 0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(0.8)
+    end
+end)
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Position = UDim2.new(0, 26, 0, 0)
+StatusText.Size = UDim2.new(1, -34, 1, 0)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "READY"
+StatusText.TextColor3 = Color3.fromRGB(160, 220, 180)
+StatusText.Font = FBD
+StatusText.TextSize = 9
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.Parent = StatusPill
+
+-- Footer
 local Footer = Instance.new("TextLabel")
-Footer.Position = UDim2.new(0, 16, 1, -26)
-Footer.Size = UDim2.new(1, -32, 0, 16)
+Footer.Position = UDim2.new(0, 0, 1, -24)
+Footer.Size = UDim2.new(1, 0, 0, 16)
 Footer.BackgroundTransparency = 1
-Footer.Text = "ZYRONX  •  MOBILE EDITION  •  V3"
-Footer.TextColor3 = Color3.fromRGB(90, 95, 112)
-Footer.Font = FONT_BOLD
-Footer.TextSize = 9
-Footer.Parent = Body
+Footer.Text = "LEMON HUB © 2025  •  ZYRONX"
+Footer.TextColor3 = C.Muted2
+Footer.Font = FBD
+Footer.TextSize = 8
+Footer.Parent = Content
 
 --============ MINIMIZE ============
-local FULL_H, MINI_H = 410, 54
+local FULL_H, MINI_H = 420, 56
 local minimized = false
 
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-
-    tw(Window, {Size = UDim2.fromOffset(320, minimized and MINI_H or FULL_H)},
-        0.25, Enum.EasingStyle.Quint)
-
-    Body.Visible = not minimized
+    tw(Window, {Size = UDim2.fromOffset(340, minimized and MINI_H or FULL_H)},
+        0.28, Enum.EasingStyle.Quint)
+    Content.Visible = not minimized
     MinBtn.Text = minimized and "+" or "–"
 end)
 
@@ -378,7 +415,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
---============ DRAG (PC + MOBILE) ============
+--============ DRAG ============
 local dragging = false
 local dragStart, startPos
 
@@ -405,17 +442,16 @@ UIS.InputChanged:Connect(function(input)
     or input.UserInputType == Enum.UserInputType.Touch then
         local delta = input.Position - dragStart
         Window.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
         )
     end
 end)
 
 --============ ENTRANCE ============
-Window.Size = UDim2.fromOffset(300, 390)
-tw(Window, {Size = UDim2.fromOffset(320, 410)}, 0.28,
+Window.Size = UDim2.fromOffset(300, 380)
+task.wait(0.02)
+tw(Window, {Size = UDim2.fromOffset(340, 420)}, 0.35,
     Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
-print("LEMON HUB V3 — UI ONLY LOADED")
+print("LEMON HUB V3 — CLEAN UI LOADED")
