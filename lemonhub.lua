@@ -2,6 +2,7 @@
 --=====================================
 --       🍋 LEMON HUB
 --       ZYRONX UI EDITION
+--       PAPER TO PLANE
 --=====================================
 
 local Players = game:GetService("Players")
@@ -9,19 +10,33 @@ local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
-local GuiParent = game:GetService("CoreGui")
+local GuiParent = Player:WaitForChild("PlayerGui")
 
 local Old = GuiParent:FindFirstChild("LemonHub")
 if Old then Old:Destroy() end
 
--- COLORS
 local Yellow = Color3.fromRGB(255, 210, 35)
 local Dark = Color3.fromRGB(12, 13, 18)
 local Card = Color3.fromRGB(25, 27, 36)
 local White = Color3.fromRGB(245, 245, 245)
 local Gray = Color3.fromRGB(155, 160, 175)
 
--- GUI
+-- FEATURE CALLBACKS
+-- Connect these to documented game-supported actions.
+local Features = {
+    ["AUTO THROW & PILOT"] = function(enabled)
+        warn("Auto Throw & Pilot:", enabled)
+    end,
+
+    ["AUTO REBIRTH"] = function(enabled)
+        warn("Auto Rebirth:", enabled)
+    end,
+
+    ["AUTO TRAINING"] = function(enabled)
+        warn("Auto Training:", enabled)
+    end
+}
+
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "LemonHub"
 Gui.ResetOnSpawn = false
@@ -59,7 +74,6 @@ Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 19
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- MINIMIZE
 local Min = Instance.new("TextButton", Header)
 Min.Size = UDim2.fromOffset(28, 28)
 Min.Position = UDim2.new(1, -68, 0, 11)
@@ -72,13 +86,12 @@ Min.TextSize = 20
 Instance.new("UICorner", Min).CornerRadius =
     UDim.new(0, 7)
 
--- CLOSE
 local Close = Instance.new("TextButton", Header)
 Close.Size = UDim2.fromOffset(28, 28)
 Close.Position = UDim2.new(1, -35, 0, 11)
 Close.Text = "X"
 Close.TextColor3 = White
-Close.BackgroundColor3 = Color3.fromRGB(180, 45, 45)
+Close.BackgroundColor3 = Color3.fromRGB(180,45,45)
 Close.Font = Enum.Font.GothamBold
 Close.TextSize = 14
 
@@ -102,7 +115,6 @@ Heading.TextXAlignment = Enum.TextXAlignment.Left
 
 local States = {}
 
--- TOGGLE
 local function AddToggle(Name, Desc, Y)
 
     local Row = Instance.new("Frame", Body)
@@ -134,15 +146,13 @@ local function AddToggle(Name, Desc, Y)
     Sub.TextSize = 9
     Sub.TextXAlignment = Enum.TextXAlignment.Left
 
-    local On = false
     States[Name] = false
 
     local Button = Instance.new("TextButton", Row)
     Button.Size = UDim2.fromOffset(43, 23)
     Button.Position = UDim2.new(1, -53, .5, -11)
     Button.Text = ""
-    Button.BackgroundColor3 =
-        Color3.fromRGB(55, 58, 68)
+    Button.BackgroundColor3 = Color3.fromRGB(55,58,68)
     Button.AutoButtonColor = false
 
     Instance.new("UICorner", Button).CornerRadius =
@@ -158,51 +168,48 @@ local function AddToggle(Name, Desc, Y)
 
     Button.MouseButton1Click:Connect(function()
 
-        On = not On
-        States[Name] = On
+        local NewState = not States[Name]
+
+        local success, err = pcall(function()
+            Features[Name](NewState)
+        end)
+
+        if not success then
+            warn("Feature error:", err)
+            return
+        end
+
+        States[Name] = NewState
 
         TweenService:Create(Button,
             TweenInfo.new(.2), {
-                BackgroundColor3 = On
+                BackgroundColor3 = NewState
                 and Yellow
-                or Color3.fromRGB(55, 58, 68)
+                or Color3.fromRGB(55,58,68)
             }):Play()
 
         TweenService:Create(Dot,
             TweenInfo.new(.2), {
-                Position = On
-                and UDim2.new(1, -20, 0, 3)
-                or UDim2.fromOffset(3, 3)
+                Position = NewState
+                and UDim2.new(1,-20,0,3)
+                or UDim2.fromOffset(3,3)
             }):Play()
-
-        print("[LEMON HUB]", Name,
-            On and "ON" or "OFF")
     end)
 end
 
--- ORIGINAL FEATURES
-AddToggle(
-    "AUTO THROW & PILOT",
-    "Automatic plane control",
-    32
-)
+AddToggle("AUTO THROW & PILOT",
+    "Automatic plane control", 32)
 
-AddToggle(
-    "AUTO REBIRTH",
-    "Automatic rebirth",
-    86
-)
+AddToggle("AUTO REBIRTH",
+    "Automatic rebirth", 86)
 
-AddToggle(
-    "AUTO TRAINING",
-    "Automatic training",
-    140
-)
+AddToggle("AUTO TRAINING",
+    "Automatic training", 140)
 
 -- FOOTER
 local Footer = Instance.new("TextLabel", Main)
-Footer.Position = UDim2.new(0, 10, 1, -27)
-Footer.Size = UDim2.new(1, -20, 0, 18)
+Footer.Position = UDim2.new(0,10,1,-27)
+Footer.Size = UDim2.new(1,-20,0,18)
 Footer.BackgroundTransparency = 1
 Footer.Text = "LEMON HUB | ZYRONX UI"
 Footer.TextColor3 = Gray
@@ -213,14 +220,13 @@ Footer.TextSize = 9
 local Minimized = false
 
 Min.MouseButton1Click:Connect(function()
-
     Minimized = not Minimized
     Body.Visible = not Minimized
     Footer.Visible = not Minimized
 
     Main.Size = Minimized
-        and UDim2.fromOffset(330, 50)
-        or UDim2.fromOffset(330, 270)
+        and UDim2.fromOffset(330,50)
+        or UDim2.fromOffset(330,270)
 
     Min.Text = Minimized and "+" or "-"
 end)
@@ -236,34 +242,26 @@ local DragStart
 local StartPos
 
 Header.InputBegan:Connect(function(Input)
-
-    if Input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or Input.UserInputType ==
-        Enum.UserInputType.Touch then
-
+    if Input.UserInputType == Enum.UserInputType.MouseButton1
+    or Input.UserInputType == Enum.UserInputType.Touch then
         Dragging = true
         DragStart = Input.Position
         StartPos = Main.Position
+    end
+end)
 
-        Input.Changed:Connect(function()
-            if Input.UserInputState ==
-                Enum.UserInputState.End then
-                Dragging = false
-            end
-        end)
+UIS.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1
+    or Input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = false
     end
 end)
 
 UIS.InputChanged:Connect(function(Input)
-
     if Dragging and (
-        Input.UserInputType ==
-        Enum.UserInputType.MouseMovement
-        or Input.UserInputType ==
-        Enum.UserInputType.Touch
+        Input.UserInputType == Enum.UserInputType.MouseMovement
+        or Input.UserInputType == Enum.UserInputType.Touch
     ) then
-
         local Delta = Input.Position - DragStart
 
         Main.Position = UDim2.new(
