@@ -526,7 +526,3 @@ end)
 closeBtn.MouseButton1Click:Connect(function()
     setOpen(false)
 end)
-
-makeDraggable(header, panel)
-
-print("[LemonHub] ✅ HOÀN TẤT — UI đã sẵn sàng!")
