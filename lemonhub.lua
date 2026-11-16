@@ -1,6 +1,10 @@
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-if not Rayfield then
-    warn("Lemon Hub: không tải được Rayfield. Kiểm tra executor có chặn HttpGet không.")
+local RAYFIELD_URL = "https://sirius.menu/rayfield"
+
+local okLoad, Rayfield = pcall(function()
+    return loadstring(game:HttpGet(RAYFIELD_URL))()
+end)
+if not okLoad or type(Rayfield) ~= "table" then
+    warn("Lemon Hub: không tải được Rayfield. Lỗi: " .. tostring(Rayfield))
     return
 end
 
@@ -35,6 +39,7 @@ local State = {
 
 local Connections = {}
 local RemoteStore = {}
+
 local dodgeParams = OverlapParams.new()
 dodgeParams.FilterType = Enum.RaycastFilterType.Exclude
 
@@ -54,18 +59,17 @@ local function describe(v)
 end
 
 local hookOk = pcall(function()
-    assert(hookmetamethod and newcclosure and getnamecallmethod)
+    assert(hookmetamethod and newcclosure and getnamecallmethod, "thiếu hàm hook")
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
         if State.SpyEnabled and (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
             pcall(function()
                 local path = self:GetFullName()
-                local args = table.pack(...)
                 local prev = RemoteStore[path]
                 RemoteStore[path] = {
                     Remote = self,
-                    Args = args,
+                    Args = table.pack(...),
                     Method = method,
                     Count = (prev and prev.Count or 0) + 1,
                 }
@@ -132,7 +136,7 @@ end
 
 local function getNearestEnemy()
     local root = getRoot()
-    if not root then return nil end
+    if not root then return nil, nil end
 
     local best, bestDist, bestPlr = nil, Config.TargetRange, nil
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -290,24 +294,18 @@ table.insert(Connections, RunService.Heartbeat:Connect(function()
     end
 end))
 
-local function buildWindow(theme)
+local okWin, Window = pcall(function()
     return Rayfield:CreateWindow({
         Name = "Lemon Hub",
         LoadingTitle = "Lemon Hub",
         LoadingSubtitle = "by Darkwen",
-        Theme = theme,
+        Theme = "AmberGlow",
         ToggleUIKeybind = "K",
         ConfigurationSaving = { Enabled = false },
         Discord = { Enabled = false },
         KeySystem = false,
     })
-end
-
-local okWin, Window = pcall(buildWindow, "AmberGlow")
-if not okWin or not Window then
-    warn("Lemon Hub: theme AmberGlow lỗi, chuyển sang Default. Lỗi: " .. tostring(Window))
-    okWin, Window = pcall(buildWindow, "Default")
-end
+end)
 if not okWin or not Window then
     warn("Lemon Hub: không tạo được cửa sổ. Lỗi: " .. tostring(Window))
     return
@@ -324,7 +322,7 @@ local StatusParagraph = HomeTab:CreateParagraph({
 local function buildStatus()
     local throwState = Config.AutoThrow and "BẬT" or "TẮT"
     local dodgeState = Config.AutoDodge and "BẬT" or "TẮT"
-    local remoteState = Config.ThrowPath and Config.ThrowPath or "Dùng Tool:Activate()"
+    local remoteState = Config.ThrowPath or "Dùng Tool:Activate()"
     local spyState = State.SpyAvailable and (State.SpyEnabled and "Đang bật" or "Đã tắt") or "Không hỗ trợ"
     return string.format(
         "Auto ném: %s\nAuto né: %s\nMục tiêu gần nhất: %s\nSố lần ném: %d\nSố lần né: %d\nRemote ném: %s\nRemote Spy: %s",
@@ -453,122 +451,6 @@ SpyTab:CreateToggle({
             })
             return
         end
-        State.SpyEnabled = value
-    end,
-})
+        State.S
 
-local LogParagraph = SpyTab:CreateParagraph({
-    Title = "Log remote",
-    Content = "Chưa có remote nào.",
-})
-
-local RemoteDropdown = SpyTab:CreateDropdown({
-    Name = "Remote dùng để ném",
-    Options = { "Chưa có remote" },
-    CurrentOption = { "Chưa có remote" },
-    MultipleOptions = false,
-    Flag = "ThrowRemote",
-    Callback = function(option)
-        local choice = type(option) == "table" and option[1] or option
-        if choice == "Chưa có remote" then
-            Config.ThrowPath = nil
-        else
-            Config.ThrowPath = choice
-        end
-    end,
-})
-
-SpyTab:CreateSection("Thao tác")
-
-SpyTab:CreateButton({
-    Name = "Làm mới danh sách",
-    Callback = function()
-        LogParagraph:Set({ Title = "Log remote", Content = buildLogText() })
-        pcall(function()
-            RemoteDropdown:Refresh(getRemoteOptions())
-        end)
-    end,
-})
-
-SpyTab:CreateButton({
-    Name = "Bắn thử remote đã chọn",
-    Callback = function()
-        if not Config.ThrowPath then
-            Rayfield:Notify({ Title = "Lemon Hub", Content = "Chưa chọn remote.", Duration = 3 })
-            return
-        end
-        local ok, err = fireStored(Config.ThrowPath)
-        Rayfield:Notify({
-            Title = "Lemon Hub",
-            Content = ok and "Đã bắn remote." or ("Lỗi: " .. tostring(err)),
-            Duration = 3,
-        })
-    end,
-})
-
-SpyTab:CreateButton({
-    Name = "Xóa log",
-    Callback = function()
-        table.clear(RemoteStore)
-        Config.ThrowPath = nil
-        LogParagraph:Set({ Title = "Log remote", Content = "Chưa có remote nào." })
-        pcall(function()
-            RemoteDropdown:Refresh({ "Chưa có remote" })
-        end)
-    end,
-})
-
-table.insert(Connections, task.spawn(function()
-    local lastCount = -1
-    while State.Alive do
-        task.wait(1.5)
-        local count = 0
-        for _ in pairs(RemoteStore) do
-            count += 1
-        end
-        if count ~= lastCount then
-            lastCount = count
-            pcall(function()
-                LogParagraph:Set({ Title = "Log remote", Content = buildLogText() })
-                RemoteDropdown:Refresh(getRemoteOptions())
-            end)
-        end
-    end
-end))
-
-local SettingsTab = Window:CreateTab("Cài đặt")
-
-SettingsTab:CreateSection("Hệ thống")
-
-SettingsTab:CreateButton({
-    Name = "Reset đếm",
-    Callback = function()
-        State.ThrowCount = 0
-        State.DodgeCount = 0
-        State.LastTarget = "Không có"
-    end,
-})
-
-SettingsTab:CreateButton({
-    Name = "Unload Lemon Hub",
-    Callback = function()
-        State.Alive = false
-        State.SpyEnabled = false
-        Config.AutoThrow = false
-        Config.AutoDodge = false
-        for _, conn in ipairs(Connections) do
-            if typeof(conn) == "RBXScriptConnection" then
-                conn:Disconnect()
-            end
-        end
-        table.clear(Connections)
-        table.clear(RemoteStore)
-        Rayfield:Destroy()
-    end,
-})
-
-Rayfield:Notify({
-    Title = "Lemon Hub",
-    Content = State.SpyAvailable and "Đã tải thành công." or "Đã tải. Remote Spy không khả dụng trên executor này.",
-    Duration = 4,
-})
+⚠️ Hạn mức đã về 0%, phiên trả lời tự động dừng tại đây.
