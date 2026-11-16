@@ -1,6 +1,6 @@
-
 --================================================
 -- 🍋 LEMON HUB V3 | ZYRONX MOBILE EDITION
+-- UI ONLY — KHÔNG CHỨA BẤT KỲ CHỨC NĂNG NÀO
 --================================================
 
 local Players = game:GetService("Players")
@@ -13,236 +13,409 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 local Old = PlayerGui:FindFirstChild("LemonHub")
 if Old then Old:Destroy() end
 
-local Yellow = Color3.fromRGB(255,210,35)
-local Dark = Color3.fromRGB(12,13,18)
-local Card = Color3.fromRGB(25,27,36)
-local White = Color3.fromRGB(245,245,245)
-local Gray = Color3.fromRGB(155,160,175)
-local Red = Color3.fromRGB(210,65,65)
-
-local Features = {
-    ["AUTO THROW"] = "Chưa có API game",
-    ["AUTO PILOT"] = "Chưa có API game",
-    ["AUTO DODGE"] = "Chưa có API game",
-    ["AUTO REBIRTH"] = "Chưa có API game",
-    ["AUTO TRAINING"] = "Chưa có API game"
+--============ PALETTE ============
+local C = {
+    Bg        = Color3.fromRGB(12, 13, 18),
+    Header    = Color3.fromRGB(19, 21, 29),
+    Card      = Color3.fromRGB(24, 26, 35),
+    CardHover = Color3.fromRGB(33, 36, 48),
+    Accent    = Color3.fromRGB(255, 210, 35),
+    Accent2   = Color3.fromRGB(255, 160, 0),
+    Text      = Color3.fromRGB(245, 246, 250),
+    Muted     = Color3.fromRGB(138, 144, 162),
+    Track     = Color3.fromRGB(46, 50, 64),
+    Line      = Color3.fromRGB(52, 56, 72),
+    Danger    = Color3.fromRGB(214, 72, 72),
 }
 
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "LemonHub"
-Gui.ResetOnSpawn = false
-Gui.DisplayOrder = 100
-Gui.Parent = PlayerGui
+local FONT_BLACK = Enum.Font.GothamBlack
+local FONT_BOLD  = Enum.Font.GothamBold
+local FONT_REG   = Enum.Font.Gotham
 
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.fromOffset(310,350)
-Main.Position = UDim2.new(.5,-155,.5,-175)
-Main.BackgroundColor3 = Dark
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Parent = Gui
+--============ HELPERS ============
+local function tw(obj, props, t, style, dir)
+    local info = TweenInfo.new(t or 0.18,
+        style or Enum.EasingStyle.Quart,
+        dir or Enum.EasingDirection.Out)
+    local a = TweenService:Create(obj, info, props)
+    a:Play()
+    return a
+end
 
-Instance.new("UICorner",Main).CornerRadius =
-    UDim.new(0,15)
+local function corner(obj, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r)
+    c.Parent = obj
+    return c
+end
 
-local Border = Instance.new("UIStroke",Main)
-Border.Color = Yellow
-Border.Thickness = 2
+local function stroke(obj, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = thickness
+    s.Transparency = transparency or 0
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Parent = obj
+    return s
+end
 
--- HEADER
+--============ ROOT ============
+local Screen = Instance.new("ScreenGui")
+Screen.Name = "LemonHub"
+Screen.ResetOnSpawn = false
+Screen.IgnoreGuiInset = true
+Screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Screen.DisplayOrder = 100
+Screen.Parent = PlayerGui
+
+local Window = Instance.new("Frame")
+Window.Name = "Window"
+Window.AnchorPoint = Vector2.new(0.5, 0.5)
+Window.Position = UDim2.fromScale(0.5, 0.5)
+Window.Size = UDim2.fromOffset(320, 410)
+Window.BackgroundColor3 = C.Bg
+Window.BorderSizePixel = 0
+Window.ClipsDescendants = true
+Window.Active = true
+Window.Parent = Screen
+corner(Window, 18)
+stroke(Window, C.Line, 1.5, 0.25)
+
+--============ HEADER ============
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1,0,0,48)
-Header.BackgroundColor3 = Card
-Header.Parent = Main
+Header.Size = UDim2.new(1, 0, 0, 54)
+Header.BackgroundColor3 = C.Header
+Header.BorderSizePixel = 0
+Header.Parent = Window
+corner(Header, 18)
 
-Instance.new("UICorner",Header).CornerRadius =
-    UDim.new(0,13)
+-- che 2 góc dưới của header
+local HeaderFill = Instance.new("Frame")
+HeaderFill.Position = UDim2.new(0, 0, 0, 34)
+HeaderFill.Size = UDim2.new(1, 0, 0, 20)
+HeaderFill.BackgroundColor3 = C.Header
+HeaderFill.BorderSizePixel = 0
+HeaderFill.ZIndex = 2
+HeaderFill.Parent = Header
 
+local HeaderLine = Instance.new("Frame")
+HeaderLine.Position = UDim2.new(0, 0, 1, -1)
+HeaderLine.Size = UDim2.new(1, 0, 0, 1)
+HeaderLine.BackgroundColor3 = C.Accent
+HeaderLine.BackgroundTransparency = 0.75
+HeaderLine.BorderSizePixel = 0
+HeaderLine.ZIndex = 3
+HeaderLine.Parent = Header
+
+-- Logo
+local Logo = Instance.new("Frame")
+Logo.Size = UDim2.fromOffset(26, 26)
+Logo.Position = UDim2.new(0, 15, 0.5, -13)
+Logo.BackgroundColor3 = C.Accent
+Logo.BorderSizePixel = 0
+Logo.ZIndex = 4
+Logo.Parent = Header
+corner(Logo, 8)
+
+local LogoGrad = Instance.new("UIGradient")
+LogoGrad.Color = ColorSequence.new(C.Accent, C.Accent2)
+LogoGrad.Rotation = 45
+LogoGrad.Parent = Logo
+
+local LogoText = Instance.new("TextLabel")
+LogoText.Size = UDim2.fromScale(1, 1)
+LogoText.BackgroundTransparency = 1
+LogoText.Text = "🍋"
+LogoText.TextSize = 14
+LogoText.ZIndex = 5
+LogoText.Parent = Logo
+
+-- Title
 local Title = Instance.new("TextLabel")
-Title.Position = UDim2.fromOffset(12,0)
-Title.Size = UDim2.new(1,-100,1,0)
+Title.Position = UDim2.new(0, 50, 0, 0)
+Title.Size = UDim2.new(1, -150, 1, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "🍋 LEMON HUB V3"
-Title.TextColor3 = Yellow
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 17
+Title.Text = "LEMON HUB"
+Title.TextColor3 = C.Text
+Title.Font = FONT_BLACK
+Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 4
 Title.Parent = Header
 
-local function MakeButton(parent,text,pos,color)
+local Version = Instance.new("TextLabel")
+Version.Position = UDim2.new(0, 50, 0, 30)
+Version.Size = UDim2.new(1, -150, 0, 14)
+Version.BackgroundTransparency = 1
+Version.Text = "V3  •  ZYRONX EDITION"
+Version.TextColor3 = C.Muted
+Version.Font = FONT_BOLD
+Version.TextSize = 8
+Version.TextXAlignment = Enum.TextXAlignment.Left
+Version.ZIndex = 4
+Version.Parent = Header
+
+-- Window buttons
+local function makeWinBtn(pos, label, hoverColor)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.fromOffset(28,27)
+    b.Size = UDim2.fromOffset(28, 28)
     b.Position = pos
-    b.Text = text
-    b.TextColor3 = White
-    b.BackgroundColor3 = color
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 14
-    b.Parent = parent
+    b.BackgroundColor3 = C.Bg
+    b.Text = label
+    b.TextColor3 = C.Muted
+    b.Font = FONT_BOLD
+    b.TextSize = 15
+    b.AutoButtonColor = false
+    b.ZIndex = 4
+    b.Parent = Header
+    corner(b, 8)
 
-    Instance.new("UICorner",b).CornerRadius =
-        UDim.new(0,7)
-
+    b.MouseEnter:Connect(function()
+        tw(b, {BackgroundColor3 = hoverColor, TextColor3 = C.Text}, 0.15)
+    end)
+    b.MouseLeave:Connect(function()
+        tw(b, {BackgroundColor3 = C.Bg, TextColor3 = C.Muted}, 0.15)
+    end)
     return b
 end
 
-local Min = MakeButton(Header,"-",
-    UDim2.new(1,-67,0,10),Dark)
+local MinBtn   = makeWinBtn(UDim2.new(1, -70, 0, 13), "–", C.CardHover)
+local CloseBtn = makeWinBtn(UDim2.new(1, -38, 0, 13), "✕", C.Danger)
 
-local Close = MakeButton(Header,"X",
-    UDim2.new(1,-34,0,10),Red)
-
--- BODY
+--============ BODY ============
 local Body = Instance.new("Frame")
-Body.Position = UDim2.fromOffset(10,57)
-Body.Size = UDim2.new(1,-20,1,-87)
+Body.Position = UDim2.fromOffset(0, 54)
+Body.Size = UDim2.new(1, 0, 1, -54)
 Body.BackgroundTransparency = 1
-Body.Parent = Main
+Body.Parent = Window
 
-local Heading = Instance.new("TextLabel")
-Heading.Size = UDim2.new(1,0,0,25)
-Heading.BackgroundTransparency = 1
-Heading.Text = "  AUTOMATIC FEATURES"
-Heading.TextColor3 = Yellow
-Heading.Font = Enum.Font.GothamBold
-Heading.TextSize = 11
-Heading.TextXAlignment = Enum.TextXAlignment.Left
-Heading.Parent = Body
+local SectionTitle = Instance.new("TextLabel")
+SectionTitle.Position = UDim2.fromOffset(16, 12)
+SectionTitle.Size = UDim2.new(1, -120, 0, 18)
+SectionTitle.BackgroundTransparency = 1
+SectionTitle.Text = "AUTOMATIC FEATURES"
+SectionTitle.TextColor3 = C.Accent
+SectionTitle.Font = FONT_BOLD
+SectionTitle.TextSize = 10
+SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
+SectionTitle.Parent = Body
+
+local Badge = Instance.new("TextLabel")
+Badge.AnchorPoint = Vector2.new(1, 0)
+Badge.Position = UDim2.new(1, -16, 0, 12)
+Badge.Size = UDim2.fromOffset(58, 18)
+Badge.BackgroundColor3 = Color3.fromRGB(40, 43, 56)
+Badge.Text = "UI ONLY"
+Badge.TextColor3 = C.Muted
+Badge.Font = FONT_BOLD
+Badge.TextSize = 8
+Badge.Parent = Body
+corner(Badge, 6)
 
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Position = UDim2.fromOffset(0,28)
-Scroll.Size = UDim2.new(1,0,1,-28)
+Scroll.Position = UDim2.fromOffset(14, 40)
+Scroll.Size = UDim2.new(1, -28, 1, -74)
 Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
 Scroll.ScrollBarThickness = 3
-Scroll.ScrollBarImageColor3 = Yellow
-Scroll.CanvasSize = UDim2.fromOffset(0,300)
+Scroll.ScrollBarImageColor3 = C.Accent
+Scroll.ScrollBarImageTransparency = 0.35
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 Scroll.Parent = Body
 
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0,7)
-Layout.Parent = Scroll
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 8)
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Parent = Scroll
 
-local function AddFeature(name,description)
-    local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1,-5,0,49)
-    Row.BackgroundColor3 = Card
-    Row.BorderSizePixel = 0
-    Row.Parent = Scroll
+local ListPad = Instance.new("UIPadding")
+ListPad.PaddingTop = UDim.new(0, 2)
+ListPad.PaddingBottom = UDim.new(0, 10)
+ListPad.Parent = Scroll
 
-    Instance.new("UICorner",Row).CornerRadius =
-        UDim.new(0,9)
+--============ CARD ============
+local function createCard(icon, title, subtitle)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -8, 0, 58)
+    card.BackgroundColor3 = C.Card
+    card.BorderSizePixel = 0
+    card.Parent = Scroll
+    corner(card, 12)
+    local cs = stroke(card, C.Line, 1, 0.55)
 
-    local Label = Instance.new("TextLabel")
-    Label.Position = UDim2.fromOffset(10,4)
-    Label.Size = UDim2.new(1,-100,0,20)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Yellow
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 10
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Row
+    -- icon
+    local iconBox = Instance.new("Frame")
+    iconBox.Size = UDim2.fromOffset(34, 34)
+    iconBox.Position = UDim2.new(0, 12, 0.5, -17)
+    iconBox.BackgroundColor3 = C.Accent
+    iconBox.BorderSizePixel = 0
+    iconBox.Parent = card
+    corner(iconBox, 10)
 
-    local Sub = Instance.new("TextLabel")
-    Sub.Position = UDim2.fromOffset(10,25)
-    Sub.Size = UDim2.new(1,-100,0,16)
-    Sub.BackgroundTransparency = 1
-    Sub.Text = description
-    Sub.TextColor3 = Gray
-    Sub.Font = Enum.Font.Gotham
-    Sub.TextSize = 9
-    Sub.TextXAlignment = Enum.TextXAlignment.Left
-    Sub.Parent = Row
+    local ig = Instance.new("UIGradient")
+    ig.Color = ColorSequence.new(C.Accent, C.Accent2)
+    ig.Rotation = 45
+    ig.Parent = iconBox
 
-    local Status = Instance.new("TextLabel")
-    Status.Size = UDim2.fromOffset(83,25)
-    Status.Position = UDim2.new(1,-90,.5,-12)
-    Status.BackgroundColor3 = Color3.fromRGB(55,58,68)
-    Status.Text = "NOT LINKED"
-    Status.TextColor3 = White
-    Status.Font = Enum.Font.GothamBold
-    Status.TextSize = 8
-    Status.Parent = Row
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.fromScale(1, 1)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = icon
+    iconLabel.TextSize = 15
+    iconLabel.Font = FONT_BOLD
+    iconLabel.TextColor3 = Color3.fromRGB(35, 28, 8)
+    iconLabel.Parent = iconBox
 
-    Instance.new("UICorner",Status).CornerRadius =
-        UDim.new(0,7)
+    -- title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Position = UDim2.new(0, 56, 0, 10)
+    titleLabel.Size = UDim2.new(1, -160, 0, 18)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = C.Text
+    titleLabel.Font = FONT_BOLD
+    titleLabel.TextSize = 12
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = card
+
+    -- subtitle
+    local subLabel = Instance.new("TextLabel")
+    subLabel.Position = UDim2.new(0, 56, 0, 30)
+    subLabel.Size = UDim2.new(1, -160, 0, 15)
+    subLabel.BackgroundTransparency = 1
+    subLabel.Text = subtitle
+    subLabel.TextColor3 = C.Muted
+    subLabel.Font = FONT_REG
+    subLabel.TextSize = 10
+    subLabel.TextXAlignment = Enum.TextXAlignment.Left
+    subLabel.Parent = card
+
+    -- toggle (thuần trang trí)
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.fromOffset(42, 23)
+    toggle.Position = UDim2.new(1, -56, 0.5, -11.5)
+    toggle.BackgroundColor3 = C.Track
+    toggle.Text = ""
+    toggle.AutoButtonColor = false
+    toggle.Parent = card
+    corner(toggle, 12)
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.fromOffset(17, 17)
+    knob.Position = UDim2.new(0, 3, 0.5, -8.5)
+    knob.BackgroundColor3 = C.Muted
+    knob.BorderSizePixel = 0
+    knob.Parent = toggle
+    corner(knob, 9)
+
+    local on = false
+    toggle.MouseButton1Click:Connect(function()
+        on = not on
+        tw(toggle, {BackgroundColor3 = on and C.Accent or C.Track}, 0.2)
+        tw(knob, {
+            Position = on
+                and UDim2.new(1, -20, 0.5, -8.5)
+                or  UDim2.new(0, 3, 0.5, -8.5),
+            BackgroundColor3 = on
+                and Color3.fromRGB(35, 28, 8)
+                or  C.Muted
+        }, 0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    end)
+
+    -- hover
+    card.MouseEnter:Connect(function()
+        tw(card, {BackgroundColor3 = C.CardHover}, 0.15)
+        tw(cs, {Transparency = 0.2}, 0.15)
+    end)
+    card.MouseLeave:Connect(function()
+        tw(card, {BackgroundColor3 = C.Card}, 0.15)
+        tw(cs, {Transparency = 0.55}, 0.15)
+    end)
+
+    return card
 end
 
-AddFeature("AUTO THROW","Throw assistance")
-AddFeature("AUTO PILOT","Flight assistance")
-AddFeature("AUTO DODGE","Obstacle warning")
-AddFeature("AUTO REBIRTH","Rebirth assistance")
-AddFeature("AUTO TRAINING","Training assistance")
+--============ DANH SÁCH (TRANG TRÍ) ============
+createCard("🎯", "AUTO THROW",   "Throw assistance")
+createCard("✈", "AUTO PILOT",   "Flight assistance")
+createCard("🛡", "AUTO DODGE",   "Obstacle warning")
+createCard("♻", "AUTO REBIRTH", "Rebirth assistance")
+createCard("⚡", "AUTO TRAINING","Training assistance")
 
--- FOOTER
+--============ FOOTER ============
 local Footer = Instance.new("TextLabel")
-Footer.Position = UDim2.new(0,10,1,-24)
-Footer.Size = UDim2.new(1,-20,0,16)
+Footer.Position = UDim2.new(0, 16, 1, -26)
+Footer.Size = UDim2.new(1, -32, 0, 16)
 Footer.BackgroundTransparency = 1
-Footer.Text = "ZYRONX UI | MOBILE EDITION"
-Footer.TextColor3 = Gray
-Footer.Font = Enum.Font.GothamBold
+Footer.Text = "ZYRONX  •  MOBILE EDITION  •  V3"
+Footer.TextColor3 = Color3.fromRGB(90, 95, 112)
+Footer.Font = FONT_BOLD
 Footer.TextSize = 9
-Footer.Parent = Main
+Footer.Parent = Body
 
--- MINIMIZE
+--============ MINIMIZE ============
+local FULL_H, MINI_H = 410, 54
 local minimized = false
 
-Min.MouseButton1Click:Connect(function()
+MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
 
+    tw(Window, {Size = UDim2.fromOffset(320, minimized and MINI_H or FULL_H)},
+        0.25, Enum.EasingStyle.Quint)
+
     Body.Visible = not minimized
-    Footer.Visible = not minimized
-
-    Main.Size = minimized
-        and UDim2.fromOffset(310,48)
-        or UDim2.fromOffset(310,350)
-
-    Min.Text = minimized and "+" or "-"
+    MinBtn.Text = minimized and "+" or "–"
 end)
 
--- CLOSE
-Close.MouseButton1Click:Connect(function()
-    Gui:Destroy()
+--============ CLOSE ============
+CloseBtn.MouseButton1Click:Connect(function()
+    tw(Window, {Size = UDim2.fromOffset(260, 320)},
+        0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    task.delay(0.19, function()
+        Screen:Destroy()
+    end)
 end)
 
--- MOBILE + PC DRAG
+--============ DRAG (PC + MOBILE) ============
 local dragging = false
-local dragStart
-local startPosition
-local dragInput
+local dragStart, startPos
 
 Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch
-    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPosition = Main.Position
+        startPos = Window.Position
 
-        input.Changed:Connect(function()
+        local conn
+        conn = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
+                conn:Disconnect()
             end
         end)
     end
 end)
 
 UIS.InputChanged:Connect(function(input)
-    if dragging and (
-        input.UserInputType == Enum.UserInputType.Touch
-        or input.UserInputType == Enum.UserInputType.MouseMovement
-    ) then
+    if not dragging then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
         local delta = input.Position - dragStart
-
-        Main.Position = UDim2.new(
-            startPosition.X.Scale,
-            startPosition.X.Offset + delta.X,
-            startPosition.Y.Scale,
-            startPosition.Y.Offset + delta.Y
+        Window.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
         )
     end
 end)
 
-print("LEMON HUB V3 MOBILE LOADED")
+--============ ENTRANCE ============
+Window.Size = UDim2.fromOffset(300, 390)
+tw(Window, {Size = UDim2.fromOffset(320, 410)}, 0.28,
+    Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+print("LEMON HUB V3 — UI ONLY LOADED")
