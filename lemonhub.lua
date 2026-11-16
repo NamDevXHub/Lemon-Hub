@@ -2,7 +2,6 @@
 --=====================================
 --       🍋 LEMON HUB
 --       ZYRONX UI EDITION
---       PAPER TO PLANE
 --=====================================
 
 local Players = game:GetService("Players")
@@ -15,25 +14,27 @@ local GuiParent = Player:WaitForChild("PlayerGui")
 local Old = GuiParent:FindFirstChild("LemonHub")
 if Old then Old:Destroy() end
 
-local Yellow = Color3.fromRGB(255, 210, 35)
-local Dark = Color3.fromRGB(12, 13, 18)
-local Card = Color3.fromRGB(25, 27, 36)
-local White = Color3.fromRGB(245, 245, 245)
-local Gray = Color3.fromRGB(155, 160, 175)
+local Yellow = Color3.fromRGB(255,210,35)
+local Dark = Color3.fromRGB(12,13,18)
+local Card = Color3.fromRGB(25,27,36)
+local White = Color3.fromRGB(245,245,245)
+local Gray = Color3.fromRGB(155,160,175)
 
--- FEATURE CALLBACKS
--- Connect these to documented game-supported actions.
-local Features = {
+local States = {}
+
+-- GAME ACTIONS
+-- Connect only to documented game-supported APIs.
+local Actions = {
     ["AUTO THROW & PILOT"] = function(enabled)
-        warn("Auto Throw & Pilot:", enabled)
+        warn("AUTO THROW & PILOT:", enabled)
     end,
 
     ["AUTO REBIRTH"] = function(enabled)
-        warn("Auto Rebirth:", enabled)
+        warn("AUTO REBIRTH:", enabled)
     end,
 
     ["AUTO TRAINING"] = function(enabled)
-        warn("Auto Training:", enabled)
+        warn("AUTO TRAINING:", enabled)
     end
 }
 
@@ -42,31 +43,31 @@ Gui.Name = "LemonHub"
 Gui.ResetOnSpawn = false
 Gui.Parent = GuiParent
 
-local Main = Instance.new("Frame", Gui)
-Main.Size = UDim2.fromOffset(330, 270)
-Main.Position = UDim2.new(.5, -165, .5, -135)
+local Main = Instance.new("Frame",Gui)
+Main.Size = UDim2.fromOffset(330,270)
+Main.Position = UDim2.new(.5,-165,.5,-135)
 Main.BackgroundColor3 = Dark
 Main.BorderSizePixel = 0
 
-Instance.new("UICorner", Main).CornerRadius =
-    UDim.new(0, 14)
+Instance.new("UICorner",Main).CornerRadius =
+    UDim.new(0,14)
 
-local Stroke = Instance.new("UIStroke", Main)
+local Stroke = Instance.new("UIStroke",Main)
 Stroke.Color = Yellow
 Stroke.Thickness = 2
 
 -- HEADER
-local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 50)
+local Header = Instance.new("Frame",Main)
+Header.Size = UDim2.new(1,0,0,50)
 Header.BackgroundColor3 = Card
 Header.BorderSizePixel = 0
 
-Instance.new("UICorner", Header).CornerRadius =
-    UDim.new(0, 12)
+Instance.new("UICorner",Header).CornerRadius =
+    UDim.new(0,12)
 
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, -100, 1, 0)
-Title.Position = UDim2.fromOffset(13, 0)
+local Title = Instance.new("TextLabel",Header)
+Title.Size = UDim2.new(1,-100,1,0)
+Title.Position = UDim2.fromOffset(13,0)
 Title.BackgroundTransparency = 1
 Title.Text = "🍋 LEMON HUB"
 Title.TextColor3 = Yellow
@@ -74,38 +75,38 @@ Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 19
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-local Min = Instance.new("TextButton", Header)
-Min.Size = UDim2.fromOffset(28, 28)
-Min.Position = UDim2.new(1, -68, 0, 11)
+local Min = Instance.new("TextButton",Header)
+Min.Size = UDim2.fromOffset(28,28)
+Min.Position = UDim2.new(1,-68,0,11)
 Min.Text = "-"
 Min.TextColor3 = Yellow
 Min.BackgroundColor3 = Dark
 Min.Font = Enum.Font.GothamBold
 Min.TextSize = 20
 
-Instance.new("UICorner", Min).CornerRadius =
-    UDim.new(0, 7)
+Instance.new("UICorner",Min).CornerRadius =
+    UDim.new(0,7)
 
-local Close = Instance.new("TextButton", Header)
-Close.Size = UDim2.fromOffset(28, 28)
-Close.Position = UDim2.new(1, -35, 0, 11)
+local Close = Instance.new("TextButton",Header)
+Close.Size = UDim2.fromOffset(28,28)
+Close.Position = UDim2.new(1,-35,0,11)
 Close.Text = "X"
 Close.TextColor3 = White
 Close.BackgroundColor3 = Color3.fromRGB(180,45,45)
 Close.Font = Enum.Font.GothamBold
 Close.TextSize = 14
 
-Instance.new("UICorner", Close).CornerRadius =
-    UDim.new(0, 7)
+Instance.new("UICorner",Close).CornerRadius =
+    UDim.new(0,7)
 
 -- BODY
-local Body = Instance.new("Frame", Main)
-Body.Position = UDim2.fromOffset(10, 60)
-Body.Size = UDim2.new(1, -20, 1, -95)
+local Body = Instance.new("Frame",Main)
+Body.Position = UDim2.fromOffset(10,60)
+Body.Size = UDim2.new(1,-20,1,-95)
 Body.BackgroundTransparency = 1
 
-local Heading = Instance.new("TextLabel", Body)
-Heading.Size = UDim2.new(1, 0, 0, 25)
+local Heading = Instance.new("TextLabel",Body)
+Heading.Size = UDim2.new(1,0,0,25)
 Heading.BackgroundTransparency = 1
 Heading.Text = "  AUTOMATIC FEATURES"
 Heading.TextColor3 = Yellow
@@ -113,22 +114,20 @@ Heading.Font = Enum.Font.GothamBold
 Heading.TextSize = 12
 Heading.TextXAlignment = Enum.TextXAlignment.Left
 
-local States = {}
+local function AddToggle(Name,Desc,Y)
 
-local function AddToggle(Name, Desc, Y)
-
-    local Row = Instance.new("Frame", Body)
-    Row.Position = UDim2.fromOffset(0, Y)
-    Row.Size = UDim2.new(1, 0, 0, 48)
+    local Row = Instance.new("Frame",Body)
+    Row.Position = UDim2.fromOffset(0,Y)
+    Row.Size = UDim2.new(1,0,0,48)
     Row.BackgroundColor3 = Card
     Row.BorderSizePixel = 0
 
-    Instance.new("UICorner", Row).CornerRadius =
-        UDim.new(0, 9)
+    Instance.new("UICorner",Row).CornerRadius =
+        UDim.new(0,9)
 
-    local Label = Instance.new("TextLabel", Row)
-    Label.Position = UDim2.fromOffset(10, 3)
-    Label.Size = UDim2.new(1, -75, 0, 22)
+    local Label = Instance.new("TextLabel",Row)
+    Label.Position = UDim2.fromOffset(10,3)
+    Label.Size = UDim2.new(1,-75,0,22)
     Label.BackgroundTransparency = 1
     Label.Text = Name
     Label.TextColor3 = Yellow
@@ -136,9 +135,9 @@ local function AddToggle(Name, Desc, Y)
     Label.TextSize = 10
     Label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local Sub = Instance.new("TextLabel", Row)
-    Sub.Position = UDim2.fromOffset(10, 25)
-    Sub.Size = UDim2.new(1, -75, 0, 15)
+    local Sub = Instance.new("TextLabel",Row)
+    Sub.Position = UDim2.fromOffset(10,25)
+    Sub.Size = UDim2.new(1,-75,0,15)
     Sub.BackgroundTransparency = 1
     Sub.Text = Desc
     Sub.TextColor3 = Gray
@@ -148,66 +147,63 @@ local function AddToggle(Name, Desc, Y)
 
     States[Name] = false
 
-    local Button = Instance.new("TextButton", Row)
-    Button.Size = UDim2.fromOffset(43, 23)
-    Button.Position = UDim2.new(1, -53, .5, -11)
+    local Button = Instance.new("TextButton",Row)
+    Button.Size = UDim2.fromOffset(43,23)
+    Button.Position = UDim2.new(1,-53,.5,-11)
     Button.Text = ""
     Button.BackgroundColor3 = Color3.fromRGB(55,58,68)
     Button.AutoButtonColor = false
 
-    Instance.new("UICorner", Button).CornerRadius =
-        UDim.new(1, 0)
+    Instance.new("UICorner",Button).CornerRadius =
+        UDim.new(1,0)
 
-    local Dot = Instance.new("Frame", Button)
-    Dot.Size = UDim2.fromOffset(17, 17)
-    Dot.Position = UDim2.fromOffset(3, 3)
+    local Dot = Instance.new("Frame",Button)
+    Dot.Size = UDim2.fromOffset(17,17)
+    Dot.Position = UDim2.fromOffset(3,3)
     Dot.BackgroundColor3 = White
 
-    Instance.new("UICorner", Dot).CornerRadius =
-        UDim.new(1, 0)
+    Instance.new("UICorner",Dot).CornerRadius =
+        UDim.new(1,0)
 
     Button.MouseButton1Click:Connect(function()
 
         local NewState = not States[Name]
 
-        local success, err = pcall(function()
-            Features[Name](NewState)
+        local Success,Error = pcall(function()
+            Actions[Name](NewState)
         end)
 
-        if not success then
-            warn("Feature error:", err)
+        if not Success then
+            warn(Error)
             return
         end
 
         States[Name] = NewState
 
-        TweenService:Create(Button,
-            TweenInfo.new(.2), {
-                BackgroundColor3 = NewState
-                and Yellow
+        TweenService:Create(Button,TweenInfo.new(.2),{
+            BackgroundColor3 = NewState and Yellow
                 or Color3.fromRGB(55,58,68)
-            }):Play()
+        }):Play()
 
-        TweenService:Create(Dot,
-            TweenInfo.new(.2), {
-                Position = NewState
+        TweenService:Create(Dot,TweenInfo.new(.2),{
+            Position = NewState
                 and UDim2.new(1,-20,0,3)
                 or UDim2.fromOffset(3,3)
-            }):Play()
+        }):Play()
     end)
 end
 
 AddToggle("AUTO THROW & PILOT",
-    "Automatic plane control", 32)
+    "Automatic plane control",32)
 
 AddToggle("AUTO REBIRTH",
-    "Automatic rebirth", 86)
+    "Automatic rebirth",86)
 
 AddToggle("AUTO TRAINING",
-    "Automatic training", 140)
+    "Automatic training",140)
 
 -- FOOTER
-local Footer = Instance.new("TextLabel", Main)
+local Footer = Instance.new("TextLabel",Main)
 Footer.Position = UDim2.new(0,10,1,-27)
 Footer.Size = UDim2.new(1,-20,0,18)
 Footer.BackgroundTransparency = 1
@@ -236,7 +232,7 @@ Close.MouseButton1Click:Connect(function()
     Gui:Destroy()
 end)
 
--- DRAG MOBILE + PC
+-- DRAG
 local Dragging = false
 local DragStart
 local StartPos
@@ -263,7 +259,6 @@ UIS.InputChanged:Connect(function(Input)
         or Input.UserInputType == Enum.UserInputType.Touch
     ) then
         local Delta = Input.Position - DragStart
-
         Main.Position = UDim2.new(
             StartPos.X.Scale,
             StartPos.X.Offset + Delta.X,
