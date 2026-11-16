@@ -1,456 +1,276 @@
-local RAYFIELD_URL = "https://sirius.menu/rayfield"
 
-local okLoad, Rayfield = pcall(function()
-    return loadstring(game:HttpGet(RAYFIELD_URL))()
-end)
-if not okLoad or type(Rayfield) ~= "table" then
-    warn("Lemon Hub: không tải được Rayfield. Lỗi: " .. tostring(Rayfield))
-    return
-end
+--=====================================
+--       🍋 LEMON HUB
+--       ZYRONX UI EDITION
+--=====================================
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
 
-local Config = {
-    AutoThrow = false,
-    ThrowCooldown = 0.6,
-    TargetRange = 150,
-    ThrowPath = nil,
+local Player = Players.LocalPlayer
+local GuiParent = game:GetService("CoreGui")
 
-    AutoDodge = false,
-    DodgeRadius = 18,
-    DodgeDistance = 8,
-    DodgeSensitivity = 0.6,
-    DodgeCooldown = 0.35,
-    MinThreatSpeed = 15,
-}
+local Old = GuiParent:FindFirstChild("LemonHub")
+if Old then Old:Destroy() end
 
-local State = {
-    Alive = true,
-    SpyEnabled = false,
-    SpyAvailable = false,
-    LastTarget = "Không có",
-    ThrowCount = 0,
-    DodgeCount = 0,
-    LastThrow = 0,
-    LastDodge = 0,
-}
+-- COLORS
+local Yellow = Color3.fromRGB(255, 210, 35)
+local Dark = Color3.fromRGB(12, 13, 18)
+local Card = Color3.fromRGB(25, 27, 36)
+local White = Color3.fromRGB(245, 245, 245)
+local Gray = Color3.fromRGB(155, 160, 175)
 
-local Connections = {}
-local RemoteStore = {}
+-- GUI
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "LemonHub"
+Gui.ResetOnSpawn = false
+Gui.Parent = GuiParent
 
-local dodgeParams = OverlapParams.new()
-dodgeParams.FilterType = Enum.RaycastFilterType.Exclude
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.fromOffset(330, 270)
+Main.Position = UDim2.new(.5, -165, .5, -135)
+Main.BackgroundColor3 = Dark
+Main.BorderSizePixel = 0
 
-local function describe(v)
-    local t = typeof(v)
-    if t == "Vector3" then
-        return string.format("Vector3(%.2f, %.2f, %.2f)", v.X, v.Y, v.Z)
-    elseif t == "CFrame" then
-        local p = v.Position
-        return string.format("CFrame(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
-    elseif t == "Instance" then
-        return v:GetFullName()
-    elseif t == "table" then
-        return "table"
-    end
-    return t .. ": " .. tostring(v)
-end
+Instance.new("UICorner", Main).CornerRadius =
+    UDim.new(0, 14)
 
-local hookOk = pcall(function()
-    assert(hookmetamethod and newcclosure and getnamecallmethod, "thiếu hàm hook")
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if State.SpyEnabled and (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
-            pcall(function()
-                local path = self:GetFullName()
-                local prev = RemoteStore[path]
-                RemoteStore[path] = {
-                    Remote = self,
-                    Args = table.pack(...),
-                    Method = method,
-                    Count = (prev and prev.Count or 0) + 1,
-                }
-            end)
-        end
-        return oldNamecall(self, ...)
-    end))
-end)
-State.SpyAvailable = hookOk
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Color = Yellow
+Stroke.Thickness = 2
 
-local function fireStored(path)
-    local entry = path and RemoteStore[path]
-    if not entry or not entry.Remote or not entry.Remote.Parent then
-        return false, "remote không tồn tại"
-    end
-    return pcall(function()
-        if entry.Method == "InvokeServer" then
-            entry.Remote:InvokeServer(table.unpack(entry.Args, 1, entry.Args.n))
-        else
-            entry.Remote:FireServer(table.unpack(entry.Args, 1, entry.Args.n))
-        end
+-- HEADER
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundColor3 = Card
+Header.BorderSizePixel = 0
+
+Instance.new("UICorner", Header).CornerRadius =
+    UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, -100, 1, 0)
+Title.Position = UDim2.fromOffset(13, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "🍋 LEMON HUB"
+Title.TextColor3 = Yellow
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 19
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- MINIMIZE
+local Min = Instance.new("TextButton", Header)
+Min.Size = UDim2.fromOffset(28, 28)
+Min.Position = UDim2.new(1, -68, 0, 11)
+Min.Text = "-"
+Min.TextColor3 = Yellow
+Min.BackgroundColor3 = Dark
+Min.Font = Enum.Font.GothamBold
+Min.TextSize = 20
+
+Instance.new("UICorner", Min).CornerRadius =
+    UDim.new(0, 7)
+
+-- CLOSE
+local Close = Instance.new("TextButton", Header)
+Close.Size = UDim2.fromOffset(28, 28)
+Close.Position = UDim2.new(1, -35, 0, 11)
+Close.Text = "X"
+Close.TextColor3 = White
+Close.BackgroundColor3 = Color3.fromRGB(180, 45, 45)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 14
+
+Instance.new("UICorner", Close).CornerRadius =
+    UDim.new(0, 7)
+
+-- BODY
+local Body = Instance.new("Frame", Main)
+Body.Position = UDim2.fromOffset(10, 60)
+Body.Size = UDim2.new(1, -20, 1, -95)
+Body.BackgroundTransparency = 1
+
+local Heading = Instance.new("TextLabel", Body)
+Heading.Size = UDim2.new(1, 0, 0, 25)
+Heading.BackgroundTransparency = 1
+Heading.Text = "  AUTOMATIC FEATURES"
+Heading.TextColor3 = Yellow
+Heading.Font = Enum.Font.GothamBold
+Heading.TextSize = 12
+Heading.TextXAlignment = Enum.TextXAlignment.Left
+
+local States = {}
+
+-- TOGGLE
+local function AddToggle(Name, Desc, Y)
+
+    local Row = Instance.new("Frame", Body)
+    Row.Position = UDim2.fromOffset(0, Y)
+    Row.Size = UDim2.new(1, 0, 0, 48)
+    Row.BackgroundColor3 = Card
+    Row.BorderSizePixel = 0
+
+    Instance.new("UICorner", Row).CornerRadius =
+        UDim.new(0, 9)
+
+    local Label = Instance.new("TextLabel", Row)
+    Label.Position = UDim2.fromOffset(10, 3)
+    Label.Size = UDim2.new(1, -75, 0, 22)
+    Label.BackgroundTransparency = 1
+    Label.Text = Name
+    Label.TextColor3 = Yellow
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 10
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local Sub = Instance.new("TextLabel", Row)
+    Sub.Position = UDim2.fromOffset(10, 25)
+    Sub.Size = UDim2.new(1, -75, 0, 15)
+    Sub.BackgroundTransparency = 1
+    Sub.Text = Desc
+    Sub.TextColor3 = Gray
+    Sub.Font = Enum.Font.Gotham
+    Sub.TextSize = 9
+    Sub.TextXAlignment = Enum.TextXAlignment.Left
+
+    local On = false
+    States[Name] = false
+
+    local Button = Instance.new("TextButton", Row)
+    Button.Size = UDim2.fromOffset(43, 23)
+    Button.Position = UDim2.new(1, -53, .5, -11)
+    Button.Text = ""
+    Button.BackgroundColor3 =
+        Color3.fromRGB(55, 58, 68)
+    Button.AutoButtonColor = false
+
+    Instance.new("UICorner", Button).CornerRadius =
+        UDim.new(1, 0)
+
+    local Dot = Instance.new("Frame", Button)
+    Dot.Size = UDim2.fromOffset(17, 17)
+    Dot.Position = UDim2.fromOffset(3, 3)
+    Dot.BackgroundColor3 = White
+
+    Instance.new("UICorner", Dot).CornerRadius =
+        UDim.new(1, 0)
+
+    Button.MouseButton1Click:Connect(function()
+
+        On = not On
+        States[Name] = On
+
+        TweenService:Create(Button,
+            TweenInfo.new(.2), {
+                BackgroundColor3 = On
+                and Yellow
+                or Color3.fromRGB(55, 58, 68)
+            }):Play()
+
+        TweenService:Create(Dot,
+            TweenInfo.new(.2), {
+                Position = On
+                and UDim2.new(1, -20, 0, 3)
+                or UDim2.fromOffset(3, 3)
+            }):Play()
+
+        print("[LEMON HUB]", Name,
+            On and "ON" or "OFF")
     end)
 end
 
-local function getCharacter()
-    return LocalPlayer.Character
-end
+-- ORIGINAL FEATURES
+AddToggle(
+    "AUTO THROW & PILOT",
+    "Automatic plane control",
+    32
+)
 
-local function getRoot()
-    local char = getCharacter()
-    return char and char:FindFirstChild("HumanoidRootPart")
-end
+AddToggle(
+    "AUTO REBIRTH",
+    "Automatic rebirth",
+    86
+)
 
-local function getHumanoid()
-    local char = getCharacter()
-    return char and char:FindFirstChildOfClass("Humanoid")
-end
+AddToggle(
+    "AUTO TRAINING",
+    "Automatic training",
+    140
+)
 
-local function getPlane()
-    local char = getCharacter()
-    if not char then return nil end
+-- FOOTER
+local Footer = Instance.new("TextLabel", Main)
+Footer.Position = UDim2.new(0, 10, 1, -27)
+Footer.Size = UDim2.new(1, -20, 0, 18)
+Footer.BackgroundTransparency = 1
+Footer.Text = "LEMON HUB | ZYRONX UI"
+Footer.TextColor3 = Gray
+Footer.Font = Enum.Font.GothamBold
+Footer.TextSize = 9
 
-    local equipped = char:FindFirstChildOfClass("Tool")
-    if equipped then
-        return equipped
-    end
+-- MINIMIZE
+local Minimized = false
 
-    local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-    local hum = getHumanoid()
-    if backpack and hum then
-        local tool = backpack:FindFirstChildOfClass("Tool")
-        if tool then
-            hum:EquipTool(tool)
-        end
-    end
-    return nil
-end
+Min.MouseButton1Click:Connect(function()
 
-local function isEnemy(plr)
-    if plr == LocalPlayer then return false end
-    if LocalPlayer.Team and plr.Team == LocalPlayer.Team then return false end
-    return true
-end
+    Minimized = not Minimized
+    Body.Visible = not Minimized
+    Footer.Visible = not Minimized
 
-local function getNearestEnemy()
-    local root = getRoot()
-    if not root then return nil, nil end
+    Main.Size = Minimized
+        and UDim2.fromOffset(330, 50)
+        or UDim2.fromOffset(330, 270)
 
-    local best, bestDist, bestPlr = nil, Config.TargetRange, nil
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if isEnemy(plr) then
-            local char = plr.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hrp and hum and hum.Health > 0 then
-                local d = (hrp.Position - root.Position).Magnitude
-                if d < bestDist then
-                    best = hrp
-                    bestDist = d
-                    bestPlr = plr
-                end
-            end
-        end
-    end
-    return best, bestPlr
-end
-
-local function tryThrow()
-    if os.clock() - State.LastThrow < Config.ThrowCooldown then return end
-
-    local target, targetPlr = getNearestEnemy()
-    State.LastTarget = targetPlr and targetPlr.Name or "Không có"
-
-    if Config.ThrowPath then
-        local ok = fireStored(Config.ThrowPath)
-        if ok then
-            State.LastThrow = os.clock()
-            State.ThrowCount += 1
-        end
-        return
-    end
-
-    local root = getRoot()
-    if not root then return end
-
-    local plane = getPlane()
-    if not plane or plane.Parent ~= getCharacter() then return end
-    if not target then return end
-
-    local flat = Vector3.new(
-        target.Position.X - root.Position.X,
-        0,
-        target.Position.Z - root.Position.Z
-    )
-    if flat.Magnitude > 0.1 then
-        root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
-    end
-
-    plane:Activate()
-    State.LastThrow = os.clock()
-    State.ThrowCount += 1
-end
-
-local function isCharacterPart(part)
-    local model = part:FindFirstAncestorOfClass("Model")
-    while model do
-        if model:FindFirstChildOfClass("Humanoid") then
-            return true
-        end
-        model = model.Parent and model.Parent:FindFirstAncestorOfClass("Model")
-    end
-    return false
-end
-
-local function getDodgeDirection(root)
-    local char = getCharacter()
-    if not char then return nil end
-
-    dodgeParams.FilterDescendantsInstances = { char }
-    local parts = workspace:GetPartBoundsInRadius(root.Position, Config.DodgeRadius, dodgeParams)
-
-    for _, part in ipairs(parts) do
-        if not part.Anchored and not isCharacterPart(part) then
-            local v = part.AssemblyLinearVelocity
-            if v.Magnitude >= Config.MinThreatSpeed then
-                local toRoot = root.Position - part.Position
-                if toRoot.Magnitude > 0.1 then
-                    local towardness = v.Unit:Dot(toRoot.Unit)
-                    if towardness >= Config.DodgeSensitivity then
-                        local perp = Vector3.new(-v.Z, 0, v.X)
-                        if perp.Magnitude > 0.01 then
-                            perp = perp.Unit
-                            local side = toRoot:Dot(perp) >= 0 and 1 or -1
-                            return perp * side
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function getRemoteOptions()
-    local list = {}
-    for path in pairs(RemoteStore) do
-        table.insert(list, path)
-    end
-    table.sort(list)
-    if #list == 0 then
-        list = { "Chưa có remote" }
-    end
-    return list
-end
-
-local function buildLogText()
-    local paths = {}
-    for path in pairs(RemoteStore) do
-        table.insert(paths, path)
-    end
-    if #paths == 0 then
-        if not State.SpyAvailable then
-            return "Executor không hỗ trợ hookmetamethod, Remote Spy không hoạt động."
-        end
-        return "Chưa bắt được remote nào. Bật Remote Spy rồi ném máy bay một lần."
-    end
-    table.sort(paths, function(a, b)
-        return RemoteStore[a].Count > RemoteStore[b].Count
-    end)
-
-    local lines = {}
-    for i = 1, math.min(#paths, 8) do
-        local path = paths[i]
-        local entry = RemoteStore[path]
-        local argText = {}
-        for j = 1, entry.Args.n do
-            table.insert(argText, describe(entry.Args[j]))
-        end
-        table.insert(lines, string.format("[%d] %s (%s)\n    args: %s",
-            entry.Count, path, entry.Method, table.concat(argText, ", ")))
-    end
-    return table.concat(lines, "\n")
-end
-
-table.insert(Connections, RunService.Heartbeat:Connect(function()
-    if not State.Alive then return end
-
-    if Config.AutoThrow then
-        pcall(tryThrow)
-    end
-
-    if Config.AutoDodge and os.clock() - State.LastDodge >= Config.DodgeCooldown then
-        local root = getRoot()
-        if root then
-            local ok, dir = pcall(getDodgeDirection, root)
-            if ok and dir then
-                root.CFrame = root.CFrame + dir * Config.DodgeDistance
-                State.LastDodge = os.clock()
-                State.DodgeCount += 1
-            end
-        end
-    end
-end))
-
-local okWin, Window = pcall(function()
-    return Rayfield:CreateWindow({
-        Name = "Lemon Hub",
-        LoadingTitle = "Lemon Hub",
-        LoadingSubtitle = "by Darkwen",
-        Theme = "AmberGlow",
-        ToggleUIKeybind = "K",
-        ConfigurationSaving = { Enabled = false },
-        Discord = { Enabled = false },
-        KeySystem = false,
-    })
+    Min.Text = Minimized and "+" or "-"
 end)
-if not okWin or not Window then
-    warn("Lemon Hub: không tạo được cửa sổ. Lỗi: " .. tostring(Window))
-    return
-end
 
-local HomeTab = Window:CreateTab("Trang chủ")
-HomeTab:CreateSection("Trạng thái")
+-- CLOSE
+Close.MouseButton1Click:Connect(function()
+    Gui:Destroy()
+end)
 
-local StatusParagraph = HomeTab:CreateParagraph({
-    Title = "Lemon Hub",
-    Content = "Đang khởi tạo...",
-})
+-- DRAG MOBILE + PC
+local Dragging = false
+local DragStart
+local StartPos
 
-local function buildStatus()
-    local throwState = Config.AutoThrow and "BẬT" or "TẮT"
-    local dodgeState = Config.AutoDodge and "BẬT" or "TẮT"
-    local remoteState = Config.ThrowPath or "Dùng Tool:Activate()"
-    local spyState = State.SpyAvailable and (State.SpyEnabled and "Đang bật" or "Đã tắt") or "Không hỗ trợ"
-    return string.format(
-        "Auto ném: %s\nAuto né: %s\nMục tiêu gần nhất: %s\nSố lần ném: %d\nSố lần né: %d\nRemote ném: %s\nRemote Spy: %s",
-        throwState, dodgeState, State.LastTarget, State.ThrowCount, State.DodgeCount, remoteState, spyState
-    )
-end
+Header.InputBegan:Connect(function(Input)
 
-table.insert(Connections, task.spawn(function()
-    while State.Alive do
-        pcall(function()
-            StatusParagraph:Set({ Title = "Lemon Hub", Content = buildStatus() })
+    if Input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        Dragging = true
+        DragStart = Input.Position
+        StartPos = Main.Position
+
+        Input.Changed:Connect(function()
+            if Input.UserInputState ==
+                Enum.UserInputState.End then
+                Dragging = false
+            end
         end)
-        task.wait(0.5)
     end
-end))
+end)
 
-local MainTab = Window:CreateTab("Máy bay")
+UIS.InputChanged:Connect(function(Input)
 
-MainTab:CreateSection("Auto ném")
+    if Dragging and (
+        Input.UserInputType ==
+        Enum.UserInputType.MouseMovement
+        or Input.UserInputType ==
+        Enum.UserInputType.Touch
+    ) then
 
-MainTab:CreateToggle({
-    Name = "Auto ném máy bay",
-    CurrentValue = false,
-    Flag = "AutoThrow",
-    Callback = function(value)
-        Config.AutoThrow = value
-    end,
-})
+        local Delta = Input.Position - DragStart
 
-MainTab:CreateSlider({
-    Name = "Cooldown ném",
-    Range = { 0.1, 3 },
-    Increment = 0.1,
-    Suffix = "s",
-    CurrentValue = 0.6,
-    Flag = "ThrowCooldown",
-    Callback = function(value)
-        Config.ThrowCooldown = value
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Tầm ném",
-    Range = { 20, 500 },
-    Increment = 5,
-    Suffix = "studs",
-    CurrentValue = 150,
-    Flag = "TargetRange",
-    Callback = function(value)
-        Config.TargetRange = value
-    end,
-})
-
-MainTab:CreateSection("Auto né vật thể")
-
-MainTab:CreateToggle({
-    Name = "Auto né vật thể",
-    CurrentValue = false,
-    Flag = "AutoDodge",
-    Callback = function(value)
-        Config.AutoDodge = value
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Bán kính quét",
-    Range = { 5, 60 },
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 18,
-    Flag = "DodgeRadius",
-    Callback = function(value)
-        Config.DodgeRadius = value
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Khoảng né",
-    Range = { 2, 30 },
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 8,
-    Flag = "DodgeDistance",
-    Callback = function(value)
-        Config.DodgeDistance = value
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Độ nhạy né",
-    Range = { 0.1, 1 },
-    Increment = 0.05,
-    CurrentValue = 0.6,
-    Flag = "DodgeSensitivity",
-    Callback = function(value)
-        Config.DodgeSensitivity = value
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Cooldown né",
-    Range = { 0.1, 1 },
-    Increment = 0.05,
-    Suffix = "s",
-    CurrentValue = 0.35,
-    Flag = "DodgeCooldown",
-    Callback = function(value)
-        Config.DodgeCooldown = value
-    end,
-})
-
-local SpyTab = Window:CreateTab("Remote Spy")
-
-SpyTab:CreateSection("Bắt remote")
-
-SpyTab:CreateToggle({
-    Name = "Bật Remote Spy",
-    CurrentValue = false,
-    Flag = "SpyEnabled",
-    Callback = function(value)
-        if value and not State.SpyAvailable then
-            Rayfield:Notify({
-                Title = "Lemon Hub",
-                Content = "Executor không hỗ trợ hookmetamethod.",
-                Duration = 4,
-            })
-            return
-        end
-        State.S
-
-⚠️ Hạn mức đã về 0%, phiên trả lời tự động dừng tại đây.
+        Main.Position = UDim2.new(
+            StartPos.X.Scale,
+            StartPos.X.Offset + Delta.X,
+            StartPos.Y.Scale,
+            StartPos.Y.Offset + Delta.Y
+        )
+    end
+end)
